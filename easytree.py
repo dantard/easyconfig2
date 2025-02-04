@@ -5,13 +5,15 @@ from easywidgets import Subsection
 
 class EasyTree(QTreeWidget):
 
-    def __init__(self, node):
+    def __init__(self, node, dependencies):
         super().__init__()
         self.setColumnCount(2)
         self.node = node
+        self.dependencies = dependencies
         self.items = {}
         self.populate(node)
         self.filter(node)
+
 
     def update(self):
         state = self.get_collapsed_items()
@@ -40,7 +42,12 @@ class EasyTree(QTreeWidget):
 
 
     def populate(self, node, parent=None):
-        parent = self.create_item(node, parent) if parent else self.invisibleRootItem()
+
+        if parent is not None:
+            parent = self.create_item(node, parent)
+            node.widget_value_changed.connect(lambda x=node, y=node: self.check_dependency(y))
+        else:
+            parent = self.invisibleRootItem()
 
         for child in node.get_children():
             if isinstance(child, Subsection):
@@ -49,6 +56,8 @@ class EasyTree(QTreeWidget):
             else:
                 #if not child.is_hidden():
                 self.create_item(child, parent)
+                child.widget_value_changed.connect(lambda x=child, y=child: self.check_dependency(y))
+
 
     def get_collapsed_items(self):
         info = []
@@ -75,3 +84,14 @@ class EasyTree(QTreeWidget):
                 traverse(item.child(i), info2)
 
         traverse(self.invisibleRootItem(), info)
+
+    def check_all_dependencies(self):
+        for node in self.dependencies.keys():
+            self.check_dependency(node)
+
+    def check_dependency(self, node):
+        print("checking deps")
+        deps = self.dependencies.get(node, [])
+        for slave, fun in deps:
+            if isinstance(fun, (int, float, str, bool)):
+                slave.set_widget_enabled(node.get_widget_value()!=fun)

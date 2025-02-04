@@ -15,7 +15,6 @@ from easywidgets import Root, Subsection
 class EasyConfig2:
 
     def __init__(self):
-        self.immediate_update = False
         self.easyconfig_private = {}
         self.tree = None
         self.dependencies = {}
@@ -134,41 +133,11 @@ class EasyConfig2:
         # for node in disabled:
         #     self.root.get_node(node).set_editable(False)
 
-
-
-
     def add_dependencies(self, dependencies):
-        def connect_signal(node):
-            for child in node.get_children():
-                if isinstance(child, Subsection):
-                    connect_signal(child)
-                else:
-                    child.on_change.connect(self.on_change)
-
-        connect_signal(self.root)
-
         for master, slave, fun in dependencies:
             if self.dependencies.get(master, None) is None:
                 self.dependencies[master] = []
             self.dependencies[master].append((slave, fun))
 
-    def set_immediate_update(self, value):
-        self.immediate_update = value
 
-
-    def on_change(self, node):
-        if self.immediate_update:
-            node.update_value(node.get_widget_value())
-
-        self.check_dependency(node)
-
-    def check_all_dependencies(self):
-        for node in self.dependencies.keys():
-            self.check_dependency(node)
-
-    def check_dependency(self, node):
-        deps = self.dependencies.get(node, [])
-        for slave, fun in deps:
-            if isinstance(fun, (int, float, str, bool)):
-                slave.set_widget_enabled(node.get()!=fun)
 

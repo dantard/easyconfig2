@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
 class WidgetNode(QObject):
 
     on_change = pyqtSignal(object)
+    widget_value_changed = pyqtSignal(object)
 
     def __init__(self, key, **kwargs):
         super().__init__()
@@ -25,9 +26,18 @@ class WidgetNode(QObject):
         self.hidden = kwargs.get("hidden", False)
         self.editable = kwargs.get("editable", True)
         self.pretty = kwargs.get("pretty", key)
+        self.immediate_update = kwargs.get("immediate", False)
 
         if not self.check_kwargs():
             raise ValueError("Invalid keyword argument")
+
+    # Push the kwargs down to the children
+    # E.g. if a subsection is hidden, all children
+    def update_kwargs(self, kwargs):
+        self.save = kwargs.get("save", self.save)
+        self.hidden = kwargs.get("hidden", self.hidden)
+        self.editable = kwargs.get("editable", self.editable)
+        self.immediate_update = kwargs.get("immediate", self.immediate_update)
 
     def get_pretty(self):
         return self.pretty
@@ -51,15 +61,18 @@ class WidgetNode(QObject):
     def set(self, value):
         self.value = value
         self.set_widget_value(value)
+        self.on_change.emit(self)
 
     def update_value(self, value):
         self.value = value
+        self.on_change.emit(self)
+        print("updating value")
 
     def get_key(self):
         return self.key
 
     def get_arguments(self):
-        return ["pretty", "default", "editable", "save", "hidden"]
+        return ["pretty", "default", "editable", "save", "hidden", "immediate"]
 
     def check_kwargs(self):
 
@@ -107,31 +120,31 @@ class Subsection(WidgetNode):
             self.node_children = []
 
         def add_child(self, child):
+            child.update_kwargs(self.kwargs)
             self.node_children.append(child)
             return child
 
         def get_arguments(self):
-            return ["pretty", "save", "hidden"]
+            return ["pretty", "save", "hidden", "editable", "immediate"]
 
         def get_children(self):
             return self.node_children
 
-        def add_checkbox(self, key, **kwargs):
-            return self.add_child(EasyCheckBox(key, **kwargs))
-
-        def add_inputbox(self, key, **kwargs):
-            return self.add_child(EasyInputBox(key, **kwargs))
-
-        def add_combobox(self, key, **kwargs):
-            return self.add_child(EasyComboBox(key, **kwargs))
-
-        def add_slider(self, key, **kwargs):
-            return self.add_child(EasySlider(key, **kwargs))
+        # def add_checkbox(self, key, **kwargs):
+        #     return self.add_child(EasyCheckBox(key, **kwargs))
+        #
+        # def add_inputbox(self, key, **kwargs):
+        #     return self.add_child(EasyInputBox(key, **kwargs))
+        #
+        # def add_combobox(self, key, **kwargs):
+        #     return self.add_child(EasyComboBox(key, **kwargs))
+        #
+        # def add_slider(self, key, **kwargs):
+        #     return self.add_child(EasySlider(key, **kwargs))
 
         def get_node(self, path):
             path = path.strip("/").split("/")
             print("path", path)
-
 
             def get_node_recursive(node, path2):
                 for child in node.node_children:
@@ -167,15 +180,25 @@ class EasyInputBox(WidgetNode):
         def __init__(self, name, **kwargs):
             super().__init__(name, **kwargs)
             self.validator = kwargs.get("validator", None)
-            if kwargs.get("accept", None) is not None:
-                if kwargs["accept"] == "float":
-                    self.validator = QDoubleValidator()
-                elif kwargs["accept"] == "int":
-                    self.validator = QIntValidator()
+            print("validator", self.validator)
+            if isinstance(self.validator, int):
+                self.validator = QIntValidator()
+                self.kind = int
+            elif isinstance(self.validator, float):
+                self.validator = QDoubleValidator()
+                self.kind = float
+            elif isinstance(self.validator, QIntValidator):
+                self.kind = int
+            elif isinstance(self.validator, QDoubleValidator):
+                self.kind = float
+            else:
+                self.kind = str
 
         def get_widget_value(self):
-            if self.widget is not None:
-                return self.widget.text()
+            print(self.kind, "aaaa")
+            if self.widget is not None and self.widget.text() != "":
+                return self.kind(self.widget.text())
+            return None
 
         def set_widget_value(self, value):
             if self.widget is not None:
@@ -195,11 +218,13 @@ class EasyInputBox(WidgetNode):
             return self.widget
 
         def value_changed(self):
+            self.widget_value_changed.emit(self)
             if self.validator is not None and self.validator.validate(self.widget.text(), 0)[0] != QValidator.Acceptable:
                 self.widget.setStyleSheet("color: red")
                 return
             self.widget.setStyleSheet("color: black")
-            self.on_change.emit(self)
+            if self.immediate_update:
+                self.update_value(self.widget.text())
 
         def set_editable(self, enabled):
             super().set_editable(enabled)
@@ -223,12 +248,15 @@ class EasyCheckBox(WidgetNode):
 
             def get_widget(self):
                 self.widget = QCheckBox()
+                self.widget.setEnabled(self.editable)
                 self.widget.setChecked(self.value if self.value is not None else False)
                 self.widget.stateChanged.connect(self.value_changed)
                 return self.widget
 
             def value_changed(self):
-                self.on_change.emit(self)
+                self.widget_value_changed.emit(self)
+                if self.immediate_update:
+                    self.update_value(self.widget.isChecked())
 
 
 
@@ -251,12 +279,14 @@ class EasyComboBox(WidgetNode):
         def get_widget(self):
             self.widget = QComboBox()
             self.widget.addItems(self.items)
+            self.widget.setEnabled(self.editable)
             self.widget.setCurrentIndex(self.value if self.value is not None else 0)
             self.widget.currentIndexChanged.connect(self.value_changed)
             return self.widget
 
         def value_changed(self):
-            self.on_change.emit(self)
+            if self.immediate_update:
+                self.update_value(self.widget.currentIndex())
 
         def get_arguments(self):
             return super().get_arguments() + ["items"]
@@ -291,6 +321,7 @@ class EasySlider(WidgetNode):
         QWidget.setLayout( self.widget, QHBoxLayout())
         self.text = QLabel()
         self.slider = QSlider()
+        self.slider.setEnabled(self.editable)
         self.slider.setOrientation(1)
         self.widget.layout().addWidget(self.text)
         self.widget.layout().addWidget(self.slider)
@@ -306,7 +337,8 @@ class EasySlider(WidgetNode):
 
     def value_changed(self):
         self.text.setText(str(self.slider.value()*self.den))
-        self.on_change.emit(self)
+        if self.immediate_update:
+            self.update_value(self.slider.value())
 
     def get_arguments(self):
         return super().get_arguments() + ["min", "max", "den"]
