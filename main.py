@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
 
 from easyconfig import EasyConfig2
 from easytree import EasyTree
-from easywidgets import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider)
+from easywidgets import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
 #, EasyCheckBox, EasyComboBox, EasySlider)
 
 app = QApplication(sys.argv)
@@ -31,9 +31,9 @@ class MainWindow(QWidget):
 
         self.tl1 = ss1.add_child(EasyInputBox("Name1", validator=QDoubleValidator(0, 100, 2)))
         tl2 = ss1.add_child(EasyInputBox("Name2", validator=QDoubleValidator(0, 100, 2)))
-        # tl3 = ss1.add_child(EasyCheckBox("cab1", pretty = "Checkbox"))
-        # tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
-        tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider", default=-200))
+        tl3 = ss1.add_child(EasyCheckBox("cab1", pretty = "Checkbox"))
+        tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
+        tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider", default=-200, show_value=True))
 
         ss1.add_child(EasyInputBox("Name2", default=17))
         ss1.add_child(EasyInt("Name3", default=18))
