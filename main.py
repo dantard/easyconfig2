@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
 
 from easyconfig import EasyConfig2
 from easytree import EasyTree
-from easywidgets import Subsection, EasyInputBox, EasyCheckBox, EasyComboBox, EasySlider
+from easywidgets import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider)
+#, EasyCheckBox, EasyComboBox, EasySlider)
 
 app = QApplication(sys.argv)
 
@@ -28,18 +29,20 @@ class MainWindow(QWidget):
         ss1 = self.config.add(Subsection("ss1", immediate=True))
         ss2 = self.config.add(Subsection("ss2"))
 
-        tl1 = ss1.add_child(EasyInputBox("Name1", validator=QDoubleValidator(0, 100, 2)))
+        self.tl1 = ss1.add_child(EasyInputBox("Name1", validator=QDoubleValidator(0, 100, 2)))
         tl2 = ss1.add_child(EasyInputBox("Name2", validator=QDoubleValidator(0, 100, 2)))
-        tl3 = ss1.add_child(EasyCheckBox("cab1", pretty = "Checkbox"))
-        tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
-        tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider"))
+        # tl3 = ss1.add_child(EasyCheckBox("cab1", pretty = "Checkbox"))
+        # tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
+        tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider", default=-200))
 
-        ss2.add_child(EasyInputBox("Name2", default="John2"))
+        ss1.add_child(EasyInputBox("Name2", default=17))
+        ss1.add_child(EasyInt("Name3", default=18))
+        ss1.add_child(EasyCheckBox("Name4", default=True))
 
 
         ss1.add_child(Subsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
 
-        self.config.add_dependencies([(tl1, tl2, 12)])
+        self.config.add_dependencies([(self.tl1, tl2, 12)])
 
         btn = QPushButton("Save")
         btn.clicked.connect(lambda: self.config.save("config.yaml"))
@@ -60,8 +63,9 @@ class MainWindow(QWidget):
 
     def load(self):
         print("loading")
-        self.config.load("config.yaml")
-        self.tree.update()
+        self.tl1.set(122)
+        #self.config.load("config.yaml")
+        #self.tree.update()
 
 a = MainWindow()
 a.show()

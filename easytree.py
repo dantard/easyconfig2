@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 from easywidgets import Subsection
+from tripledict import TripleDict
 
 
 class EasyTree(QTreeWidget):
@@ -10,7 +11,7 @@ class EasyTree(QTreeWidget):
         self.setColumnCount(2)
         self.node = node
         self.dependencies = dependencies
-        self.items = {}
+        self.items = TripleDict()
         self.populate(node)
         self.filter(node)
 
@@ -27,25 +28,41 @@ class EasyTree(QTreeWidget):
         for child in node.get_children():
             if isinstance(child, Subsection):
                 print(child.get_pretty(), child.is_hidden())
-                self.items[child].setHidden(child.is_hidden())
+                _, item = self.items[child]
+                item.setHidden(child.is_hidden())
                 self.filter(child)
             else:
-                self.items[child].setHidden(child.is_hidden())
+                _, item = self.items[child]
+                item.setHidden(child.is_hidden())
 
 
     def create_item(self, node, parent):
         item = QTreeWidgetItem(parent)
         item.setText(0, node.get_pretty())
-        self.setItemWidget(item, 1, node.get_widget())
-        self.items[node] = item
+        widget = node.get_widget()
+        if widget is not None:
+            widget.widget_value_changed.connect(self.widget_value_changed)
+            node._node_value_changed.connect(self.node_value_changed)
+            self.setItemWidget(item, 1, widget)
+        self.items.add(node, widget, item)
         return item
+
+    def widget_value_changed(self, widget):
+        node, _ = self.items.get(widget)
+        node.update_value(widget.get_value())
+        self.check_dependency(node)
+
+    def node_value_changed(self, node):
+        widget, _ = self.items.get(node)
+        widget.set_value(node.get())
+        self.check_dependency(node)
 
 
     def populate(self, node, parent=None):
 
         if parent is not None:
             parent = self.create_item(node, parent)
-            node.widget_value_changed.connect(lambda x=node, y=node: self.check_dependency(y))
+            #node.widget_value_changed.connect(lambda x=node, y=node: self.check_dependency(y))
         else:
             parent = self.invisibleRootItem()
 
@@ -56,7 +73,7 @@ class EasyTree(QTreeWidget):
             else:
                 #if not child.is_hidden():
                 self.create_item(child, parent)
-                child.widget_value_changed.connect(lambda x=child, y=child: self.check_dependency(y))
+                #child.widget_value_changed.connect(lambda x=child, y=child: self.check_dependency(y))
 
 
     def get_collapsed_items(self):
@@ -94,4 +111,7 @@ class EasyTree(QTreeWidget):
         deps = self.dependencies.get(node, [])
         for slave, fun in deps:
             if isinstance(fun, (int, float, str, bool)):
-                slave.set_widget_enabled(node.get_widget_value()!=fun)
+                widget1, _ = self.items.get(node)
+                widget2, _ = self.items.get(slave)
+                print("setting", fun, widget1.get_value())
+                widget2.set_enabled(widget1.get_value() != fun)
