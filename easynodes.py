@@ -2,11 +2,10 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIntValidator
 
 from easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
-    EasyFileDialogWidget, EasyBasicListWidget, EasyListWidget, EasyFileListWidget
+    EasyFileDialogWidget, EasyListWidget, EasyFileListWidget
 
 
 class EasyNode(QObject):
-
     _node_value_changed = pyqtSignal(object)
     value_changed = pyqtSignal(object)
 
@@ -45,7 +44,6 @@ class EasyNode(QObject):
 
     def set_editable(self, enabled):
         self.editable = enabled
-
 
     def is_hidden(self):
         return self.hidden
@@ -101,77 +99,81 @@ class EasyNode(QObject):
         if (value := dictionary.get("$value", None)) is not None:
             self.set(value)
             self.extended = True
+
     def get_widget(self):
         return None
 
+
 class Subsection(EasyNode):
 
-        def __init__(self, key, **kwargs):
-            super().__init__(key, **kwargs)
-            self.node_children = []
+    def __init__(self, key, **kwargs):
+        super().__init__(key, **kwargs)
+        self.node_children = []
 
-        def add_child(self, child):
-            child.update_kwargs(self.kwargs)
-            self.node_children.append(child)
-            return child
+    def add_child(self, child):
+        child.update_kwargs(self.kwargs)
+        self.node_children.append(child)
+        return child
 
-        def get_child(self, key, default=None):
-            if key is None and default is not None:
-                key = default.get_key()
+    def get_child(self, key, default=None):
+        if key is None and default is not None:
+            key = default.get_key()
 
-            for child in self.node_children:
-                if child.get_key() == key:
+        for child in self.node_children:
+            if child.get_key() == key:
+                return child
+        if default is not None:
+            return self.add_child(default)
+
+        return None
+
+    def get_arguments(self):
+        return ["pretty", "save", "hidden", "editable", "immediate", "save_if_none"]
+
+    def get_children(self):
+        return self.node_children
+
+    def get_node(self, path):
+        path = path.strip("/").split("/")
+        print("path", path)
+
+        def get_node_recursive(node, path2):
+            for child in node.node_children:
+                if len(path2) == 1 and child.get_key() == path2[0]:
                     return child
-            if default is not None:
-                return self.add_child(default)
-
+                if isinstance(child, Subsection):
+                    if child.get_key() == path2[0]:
+                        return get_node_recursive(child, path2[1:])
             return None
 
+        return get_node_recursive(self, path)
 
-        def get_arguments(self):
-            return ["pretty", "save", "hidden", "editable", "immediate", "save_if_none"]
+    def check_extended(self, dictionary):
+        print("check extended", dictionary)
+        if (hidden := dictionary.get("$hidden", None)) is not None:
+            print("hidden", "***")
+            self.set_hidden(hidden)
+            self.extended = True
 
-        def get_children(self):
-            return self.node_children
+        if (editable := dictionary.get("$editable", None)) is not None:
+            self.set_editable(editable)
+            self.extended = True
 
-        def get_node(self, path):
-            path = path.strip("/").split("/")
-            print("path", path)
-
-            def get_node_recursive(node, path2):
-                for child in node.node_children:
-                    if len(path2) == 1 and child.get_key() == path2[0]:
-                        return child
-                    if isinstance(child, Subsection):
-                        if child.get_key() == path2[0]:
-                            return get_node_recursive(child, path2[1:])
-                return None
-
-            return get_node_recursive(self, path)
-
-        def check_extended(self, dictionary):
-            print("check extended", dictionary)
-            if (hidden:=dictionary.get("$hidden", None)) is not None:
-                print("hidden", "***")
-                self.set_hidden(hidden)
-                self.extended = True
-
-            if (editable:=dictionary.get("$editable", None)) is not None:
-                self.set_editable(editable)
-                self.extended = True
 
 class Root(Subsection):
 
     def __init__(self):
         super().__init__("root")
 
+
 class EasyInputBox(EasyNode):
 
     def get_widget(self):
-        return EasyInputBoxWidget(self.value,**self.kwargs)
+        return EasyInputBoxWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-             return super().get_arguments() + ["validator", "readonly"]
+        return super().get_arguments() + ["validator", "readonly"]
+
 
 class EasyInt(EasyInputBox):
 
@@ -184,17 +186,20 @@ class EasyInt(EasyInputBox):
     def get_arguments(self):
         return super().get_arguments() + ["min", "max"]
 
+
 class EasyCheckBox(EasyNode):
     def get_widget(self):
-        return EasyCheckBoxWidget(self.value,**self.kwargs)
+        return EasyCheckBoxWidget(self.value, **self.kwargs)
+
 
 class EasySlider(EasyNode):
 
     def get_widget(self):
-        return EasySliderWidget(self.value,**self.kwargs)
+        return EasySliderWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
         return super().get_arguments() + ["min", "max", "den", "format", "show_value", "suffix", "align"]
+
 
 class EasyComboBox(EasyNode):
 
@@ -206,18 +211,20 @@ class EasyComboBox(EasyNode):
         return items[index] if index < len(items) else None
 
     def get_widget(self):
-        return EasyComboBoxWidget(self.value,**self.kwargs)
+        return EasyComboBoxWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
         return super().get_arguments() + ["items"]
 
+
 class EasyFileDialog(EasyNode):
 
     def get_widget(self):
-        return EasyFileDialogWidget(self.value,**self.kwargs)
+        return EasyFileDialogWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
         return super().get_arguments() + ["type"]
+
 
 class PrivateNode(EasyNode):
 
@@ -237,6 +244,7 @@ class EasyList(EasyNode):
     def get_widget(self):
         return EasyListWidget(self.value, **self.kwargs)
 
+
 class EasyFileList(EasyNode):
 
     def __init__(self, key, **kwargs):
@@ -246,4 +254,4 @@ class EasyFileList(EasyNode):
         return super().get_arguments() + ["type", "height"]
 
     def get_widget(self):
-        return EasyFileListWidget(self.value,**self.kwargs)
+        return EasyFileListWidget(self.value, **self.kwargs)

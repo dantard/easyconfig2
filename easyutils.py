@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QIntValidator, QDoubleValidator, QValidator, QRegExpValidator
+from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
 
 def get_validator_type(validator):
@@ -8,6 +8,7 @@ def get_validator_type(validator):
         return float
     else:
         return str
+
 
 def get_validator_from_type(value_type):
     if value_type == int:

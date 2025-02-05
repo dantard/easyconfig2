@@ -1,4 +1,3 @@
-from PyQt5.QtGui import QValidator, QIntValidator, QDoubleValidator
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox, QLineEdit, QLabel
 
 from easyutils import get_validator_type
@@ -32,6 +31,7 @@ class EasyDialog(QDialog):
 
     def collect_widget_values(self):
         self.tree.collect_widget_values()
+
 
 class InputDialog(QDialog):
     # dialog with a QLineEdit and standard buttons

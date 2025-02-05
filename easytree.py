@@ -6,7 +6,6 @@ from tripledict import TripleDict
 
 
 class EasyTree(QTreeWidget):
-
     config_ok = pyqtSignal(bool)
 
     def __init__(self, node, dependencies):
@@ -33,7 +32,7 @@ class EasyTree(QTreeWidget):
         self.set_collapsed_items(state)
 
     def collect_widget_values(self):
-        for node, (widget,  _) in self.items.items1():
+        for node, (widget, _) in self.items.items1():
             if widget is not None:
                 node.update_value(widget.get_value())
 
@@ -47,7 +46,6 @@ class EasyTree(QTreeWidget):
             else:
                 _, item = self.items[child]
                 item.setHidden(child.is_hidden())
-
 
     def create_item(self, node, parent):
         item = QTreeWidgetItem(parent)
@@ -70,27 +68,26 @@ class EasyTree(QTreeWidget):
         widget.set_value(node.get())
         self.check_dependency(node)
 
-
     def populate(self, node, parent=None):
 
         if parent is not None:
             parent = self.create_item(node, parent)
-            #node.widget_value_changed.connect(lambda x=node, y=node: self.check_dependency(y))
+            # node.widget_value_changed.connect(lambda x=node, y=node: self.check_dependency(y))
         else:
             parent = self.invisibleRootItem()
 
         for child in node.get_children():
             if isinstance(child, Subsection):
-                #if not child.is_hidden():
+                # if not child.is_hidden():
                 self.populate(child, parent)
             else:
-                #if not child.is_hidden():
+                # if not child.is_hidden():
                 self.create_item(child, parent)
-                #child.widget_value_changed.connect(lambda x=child, y=child: self.check_dependency(y))
-
+                # child.widget_value_changed.connect(lambda x=child, y=child: self.check_dependency(y))
 
     def get_collapsed_items(self):
         info = []
+
         def traverse(item):
             if item.childCount() == 0:
                 return
@@ -109,7 +106,7 @@ class EasyTree(QTreeWidget):
             if item.childCount() == 0:
                 return
 
-            item.setExpanded(info2.pop(0)=="1")
+            item.setExpanded(info2.pop(0) == "1")
             for i in range(item.childCount()):
                 traverse(item.child(i), info2)
 
@@ -136,4 +133,3 @@ class EasyTree(QTreeWidget):
                 return
 
         self.config_ok.emit(True)
-

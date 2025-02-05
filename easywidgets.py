@@ -1,12 +1,7 @@
-import sys
-from tkinter.filedialog import dialogstates
-from wsgiref.validate import validator
-
-import yaml
-from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics, QFont
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTreeWidget, QTreeWidgetItem, QPushButton, \
-    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QInputDialog, QListWidget
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, \
+    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget
 
 from easydialog import InputDialog
 from easyutils import get_validator_type, get_validator_from_type
@@ -18,7 +13,7 @@ class EasyWidget(QWidget):
     def __init__(self, value, **kwargs):
         super().__init__()
         self.h_layout = QHBoxLayout()
-        self.h_layout.setContentsMargins(3,3,3,3)
+        self.h_layout.setContentsMargins(3, 3, 3, 3)
         self.setLayout(self.h_layout)
         self.default = value if value is not None else kwargs.get("default")
         self.enabled = kwargs.get("enabled", True)
@@ -39,10 +34,11 @@ class EasyWidget(QWidget):
     def set_enabled(self, enabled):
         self.list_widget.setEnabled(self.enabled)
 
+
 class EasyInputBoxWidget(EasyWidget):
 
-    def __init__(self, value,**kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         self.validated = True
         self.widget = QLineEdit()
         self.layout().addWidget(self.widget)
@@ -93,32 +89,33 @@ class EasyInputBoxWidget(EasyWidget):
     def set_enabled(self, enabled):
         self.widget.setEnabled(enabled)
 
+
 class EasyCheckBoxWidget(EasyWidget):
 
-        def __init__(self, value, **kwargs):
-            super().__init__(value,**kwargs)
-            self.widget = QCheckBox()
-            self.widget.setEnabled(self.enabled)
-            self.widget.setChecked(self.default if self.default is not None else False)
-            self.widget.stateChanged.connect(self.value_changed)
-            self.layout().addWidget(self.widget)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
+        self.widget = QCheckBox()
+        self.widget.setEnabled(self.enabled)
+        self.widget.setChecked(self.default if self.default is not None else False)
+        self.widget.stateChanged.connect(self.value_changed)
+        self.layout().addWidget(self.widget)
 
-        def get_value(self):
-            return self.widget.isChecked()
+    def get_value(self):
+        return self.widget.isChecked()
 
-        def set_value(self, value):
-            self.widget.blockSignals(True)
-            self.widget.setChecked(value if value is not None else False)
-            self.widget.blockSignals(False)
+    def set_value(self, value):
+        self.widget.blockSignals(True)
+        self.widget.setChecked(value if value is not None else False)
+        self.widget.blockSignals(False)
+
 
 class EasySliderWidget(EasyWidget):
-
     class MySlider(QSlider):
         def wheelEvent(self, e):
             e.ignore()
 
-    def __init__(self, value,**kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         self.slider = self.MySlider()
         self.text = QLabel()
         if kwargs.get("align", Qt.AlignLeft) == Qt.AlignRight:
@@ -140,16 +137,16 @@ class EasySliderWidget(EasyWidget):
 
         self.slider.setValue(self.default if self.default is not None else 0)
         self.slider.valueChanged.connect(self.value_changed)
-        self.text.setText(str(self.slider.value()*self.den))
+        self.text.setText(str(self.slider.value() * self.den))
         self.text.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        text = str(self.slider.maximum()/self.den)
+        text = str(self.slider.maximum() / self.den)
         max_value_formatted = format(float(text), self.format) + self.suffix
 
         text = str(self.slider.minimum() / self.den)
-        min_value_formatted =  format(float(text), self.format) + self.suffix
+        min_value_formatted = format(float(text), self.format) + self.suffix
 
         text_length = max(QFontMetrics(self.text.font()).boundingRect(max_value_formatted).width(),
-                            QFontMetrics(self.text.font()).boundingRect(min_value_formatted).width())
+                          QFontMetrics(self.text.font()).boundingRect(min_value_formatted).width())
         self.text.sizePolicy().setHorizontalPolicy(QSizePolicy.Minimum)
         self.text.setMinimumWidth(text_length)
         self.text.setMaximumWidth(text_length)
@@ -163,22 +160,23 @@ class EasySliderWidget(EasyWidget):
         self.slider.blockSignals(True)
         self.slider.setValue(value if value is not None else 0)
         self.slider.blockSignals(False)
-        self.text.setText(str(self.slider.value()*self.den))
+        self.text.setText(str(self.slider.value() * self.den))
 
     def value_changed(self):
         super().value_changed()
-        self.text.setText(format(self.slider.value()/self.den, self.format) + self.suffix)
+        self.text.setText(format(self.slider.value() / self.den, self.format) + self.suffix)
 
     def set_enabled(self, enabled):
         self.slider.setEnabled(enabled)
+
 
 class EasyComboBoxWidget(EasyWidget):
     class MyComboBox(QComboBox):
         def wheelEvent(self, e):
             e.ignore()
 
-    def __init__(self, value,**kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         self.widget = self.MyComboBox()
         self.widget.addItems(kwargs.get("items", []))
         self.widget.setEnabled(self.enabled)
@@ -197,9 +195,10 @@ class EasyComboBoxWidget(EasyWidget):
     def set_enabled(self, enabled):
         self.widget.setEnabled(enabled)
 
+
 class EasyFileDialogWidget(EasyWidget):
-    def __init__(self, value,**kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         self.type = kwargs.get("type", "open")
         if self.type not in ["file", "dir"]:
             raise ValueError("Invalid type")
@@ -242,9 +241,10 @@ class EasyFileDialogWidget(EasyWidget):
         print("ssssssssssstiing", value)
         self.widget.setText(value)
 
+
 class EasyBasicListWidget(EasyWidget):
-    def __init__(self,value, **kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         # get parameters
         self.widget_height = kwargs.get("height", 50)
         self.editable = kwargs.get("editable", True)
@@ -322,9 +322,10 @@ class EasyBasicListWidget(EasyWidget):
         if value is not None:
             self.list_widget.addItems(value)
 
+
 class EasyListWidget(EasyBasicListWidget):
-    def __init__(self, value,**kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         # Establish validator
         self.validator = kwargs.get("validator", None)
         if self.validator is not None:
@@ -344,9 +345,10 @@ class EasyListWidget(EasyBasicListWidget):
             return dialog.input.text()
         return None
 
+
 class EasyFileListWidget(EasyBasicListWidget):
-    def __init__(self, value,**kwargs):
-        super().__init__(value,**kwargs)
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
         self.kind = kwargs.get("type", "file")
         if self.kind not in ["file", "dir"]:
             raise ValueError("Invalid type")

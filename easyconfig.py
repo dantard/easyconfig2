@@ -1,11 +1,4 @@
-import sys
-from wsgiref.validate import validator
-
 import yaml
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTreeWidget, QTreeWidgetItem, QPushButton, \
-    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QDialog, QDialogButtonBox
 
 from easydialog import EasyDialog
 from easynodes import Root, Subsection, PrivateNode
@@ -23,7 +16,6 @@ class EasyConfig2:
         self.collapsed = self.private.add_child(PrivateNode("collapsed", default=None, save_if_none=False))
         self.hidden = self.private.add_child(PrivateNode("hidden", default=None, save_if_none=False))
         self.disabled = self.private.add_child(PrivateNode("disabled", default=None, save_if_none=False))
-
 
     def add(self, node):
         self.root.add_child(node)
@@ -43,7 +35,6 @@ class EasyConfig2:
                 new_dict[main_key] = (value, suffix)
 
         return new_dict
-
 
     def distribute_values(self, node, values):
 
@@ -75,7 +66,6 @@ class EasyConfig2:
                     if child.get() is not None or child.is_savable_if_none():
                         values[child.get_key()] = child.get()
 
-
     def save(self, filename):
         values = self.get_dictionary()
         with open(filename, "w") as f:
@@ -95,9 +85,6 @@ class EasyConfig2:
         for key in self.hidden.get([]):
             self.root.get_node(key).set_hidden(True)
 
-
-
-
     def edit(self):
         dialog = EasyDialog(EasyTree(self.root, self.dependencies))
         dialog.set_collapsed(self.collapsed.get())
@@ -105,7 +92,6 @@ class EasyConfig2:
             dialog.collect_widget_values()
             self.collapsed.set(dialog.get_collapsed())
             self.save("config.yaml")
-
 
     def parse(self, values):
         self.distribute_values(self.root, values)
@@ -131,6 +117,3 @@ class EasyConfig2:
             if self.dependencies.get(master, None) is None:
                 self.dependencies[master] = []
             self.dependencies[master].append((slave, fun))
-
-
-
