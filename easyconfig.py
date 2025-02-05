@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
     QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QDialog, QDialogButtonBox
 
 from easydialog import EasyDialog
-from easynodes import Root, Subsection
+from easynodes import Root, Subsection, PrivateNode
 from easytree import EasyTree
 
 
@@ -19,6 +19,11 @@ class EasyConfig2:
         self.tree = None
         self.dependencies = {}
         self.root = Root()
+        self.private = self.root.add_child(Subsection("easyconfig", hidden=True))
+        self.collapsed = self.private.add_child(PrivateNode("collapsed", default=None, save_if_none=False))
+        self.hidden = self.private.add_child(PrivateNode("hidden", default=None, save_if_none=False))
+        self.disabled = self.private.add_child(PrivateNode("disabled", default=None, save_if_none=False))
+
 
     def add(self, node):
         self.root.add_child(node)
@@ -39,13 +44,6 @@ class EasyConfig2:
 
         return new_dict
 
-    def collect_widget_values(self, node):
-        for child in node.get_children():
-            if isinstance(child, Subsection):
-                self.collect_widget_values(child)
-            else:
-                child.update_value(child.get_widget_value())
-
 
     def distribute_values(self, node, values):
 
@@ -56,13 +54,7 @@ class EasyConfig2:
                 child.check_extended(dictionary)
             else:
                 value = values.get(child.get_key())
-                if isinstance(value, (int, float, str, bool)) or value is None:
-                    child.set(value)
-                # Manage the extended functionality of the value
-                elif isinstance(value, dict):
-                    child.check_extended(value)
-                else:
-                    raise ValueError("Invalid value")
+                child.set(value)
 
     def create_dictionary(self, node, values=None):
         # create a dictionary to store the values traversing the tree
@@ -76,16 +68,11 @@ class EasyConfig2:
                 if child.is_savable():
                     new_dict = {}
                     self.create_dictionary(child, new_dict)
-                    if child.extended:
-                        new_dict["$hidden"] = child.is_hidden()
-                        new_dict["$editable"] = child.editable
                     values[child.get_key()] = new_dict
             else:
                 # if the child is a TextLine, store the value in the dictionary
                 if child.is_savable():
-                    if child.extended:
-                        values[child.get_key()] = {"$value": child.get(), "$hidden": child.is_hidden(), "$editable": child.editable}
-                    else:
+                    if child.get() is not None or child.is_savable_if_none():
                         values[child.get_key()] = child.get()
 
 
@@ -102,15 +89,21 @@ class EasyConfig2:
     def load(self, filename):
         with open(filename, "r") as f:
             values = yaml.safe_load(f)
+            print("values", values)
             self.parse(values)
+
+        for key in self.hidden.get([]):
+            self.root.get_node(key).set_hidden(True)
 
 
 
 
     def edit(self):
-        dialog = EasyDialog(EasyTree(self.root))
-        if dialog.exec_():
-            self.collect_widget_values(self.root)
+        dialog = EasyDialog(EasyTree(self.root, self.dependencies))
+        dialog.set_collapsed(self.collapsed.get())
+        if dialog.exec():
+            dialog.collect_widget_values()
+            self.collapsed.set(dialog.get_collapsed())
             self.save("config.yaml")
 
 

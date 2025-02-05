@@ -1,3 +1,4 @@
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 from easynodes import Subsection
@@ -5,6 +6,8 @@ from tripledict import TripleDict
 
 
 class EasyTree(QTreeWidget):
+
+    config_ok = pyqtSignal(bool)
 
     def __init__(self, node, dependencies):
         super().__init__()
@@ -14,7 +17,12 @@ class EasyTree(QTreeWidget):
         self.items = TripleDict()
         self.populate(node)
         self.filter(node)
+        self.header().hide()
+        self.expanded.connect(self.tree_expanded)
+        self.collapsed.connect(self.tree_expanded)
 
+    def tree_expanded(self):
+        self.node.get_node("easyconfig/collapsed").set(self.get_collapsed_items())
 
     def update(self):
         state = self.get_collapsed_items()
@@ -23,6 +31,11 @@ class EasyTree(QTreeWidget):
         self.populate(self.node)
         self.filter(self.node)
         self.set_collapsed_items(state)
+
+    def collect_widget_values(self):
+        for node, (widget,  _) in self.items.items1():
+            if widget is not None:
+                node.update_value(widget.get_value())
 
     def filter(self, node):
         for child in node.get_children():
@@ -115,3 +128,12 @@ class EasyTree(QTreeWidget):
                 widget2, _ = self.items.get(slave)
                 print("setting", fun, widget1.get_value())
                 widget2.set_enabled(widget1.get_value() != fun)
+
+        for widget in self.items.keys2():
+            if widget is not None and not widget.is_ok():
+                self.config_ok.emit(False)
+                print("NOOOOOOOOOOOT OK")
+                return
+
+        self.config_ok.emit(True)
+

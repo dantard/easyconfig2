@@ -16,3 +16,15 @@ class TripleDict:
 
     def __getitem__(self, item):
         return self.get(item)
+
+    def items1(self):
+        return self.dict1.items()
+
+    def items2(self):
+        return self.dict2.items()
+
+    def keys1(self):
+        return self.dict1.keys()
+
+    def keys2(self):
+        return self.dict2.keys()

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
     QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy
 
 from easyconfig import EasyConfig2
-from easynodes import EasyFileDialog
+from easynodes import EasyFileDialog, PrivateNode, EasyList, EasyFileList
 from easytree import EasyTree
 from easynodes import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox, EasyFileDialogWidget)
 #, EasyCheckBox, EasyComboBox, EasySlider)
@@ -18,8 +18,6 @@ app = QApplication(sys.argv)
 
 class MainWindow(QWidget):
 
-
-
     def __init__(self):
         super().__init__()
         self.v_layout = QVBoxLayout()
@@ -27,8 +25,10 @@ class MainWindow(QWidget):
 
         self.config = EasyConfig2()
 
-        ss1 = self.config.add(Subsection("ss1", immediate=True))
+        ss1 = self.config.add(Subsection("ss1", immediate=True, save_if_none=False))
         ss2 = self.config.add(Subsection("ss2"))
+        ss1.add_child(EasyList("Name1333", default=[1, 2, 3], validator=QIntValidator(0, 100), height=100))
+        ss1.add_child(EasyFileList("Name13332", default=[1, 2, 3],  height=100))
 
         self.tl1 = ss1.add_child(EasyInputBox("Name1", validator=QDoubleValidator(0, 100, 2)))
         tl2 = ss1.add_child(EasyInputBox("Name2", validator=QDoubleValidator(0, 100, 2)))
@@ -43,11 +43,14 @@ class MainWindow(QWidget):
         ss1.add_child(EasyInt("Name3", default=18))
         ss1.add_child(EasyCheckBox("Name4", default=True))
         ss1.add_child(EasyFileDialog("Name5", type="dir"))
-
+        ss1.add_child(PrivateNode("Name6", default={"a":[1,2,3]}))
 
         ss1.add_child(Subsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
 
         self.config.add_dependencies([(self.tl1, tl2, 12)])
+        self.config.load("config.yaml")
+
+        print("AAAAAAAAAAAAAA", tl5.get())
 
         btn = QPushButton("Save")
         btn.clicked.connect(lambda: self.config.save("config.yaml"))
@@ -63,14 +66,12 @@ class MainWindow(QWidget):
         self.layout().addWidget(btn)
         self.layout().addWidget(btn_edit)
 
-        self.tree = EasyTree(self.config.root, self.config.dependencies)
-        self.v_layout.addWidget(self.tree)
+        #self.tree = EasyTree(self.config.root, self.config.dependencies)
+        #self.v_layout.addWidget(self.tree)
 
     def load(self):
-        print("loading")
-        self.tl1.set(122)
-        #self.config.load("config.yaml")
-        #self.tree.update()
+        pass
+
 
 a = MainWindow()
 a.show()

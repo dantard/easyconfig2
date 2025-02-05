@@ -1,23 +1,31 @@
 import sys
+from tkinter.filedialog import dialogstates
 from wsgiref.validate import validator
 
 import yaml
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics
+from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics, QFont
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTreeWidget, QTreeWidgetItem, QPushButton, \
-    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog
+    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QInputDialog, QListWidget
+
+from easydialog import InputDialog
+from easyutils import get_validator_type, get_validator_from_type
 
 
 class EasyWidget(QWidget):
     widget_value_changed = pyqtSignal(object)
 
-    def __init__(self, **kwargs):
+    def __init__(self, value, **kwargs):
         super().__init__()
         self.h_layout = QHBoxLayout()
         self.h_layout.setContentsMargins(3,3,3,3)
         self.setLayout(self.h_layout)
-        self.default = kwargs.get("default", None)
+        self.default = value if value is not None else kwargs.get("default")
         self.enabled = kwargs.get("enabled", True)
+        self.list_widget = None
+
+    def is_ok(self):
+        return True
 
     def get_value(self):
         pass
@@ -29,12 +37,13 @@ class EasyWidget(QWidget):
         self.widget_value_changed.emit(self)
 
     def set_enabled(self, enabled):
-        pass
+        self.list_widget.setEnabled(self.enabled)
 
 class EasyInputBoxWidget(EasyWidget):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, value,**kwargs):
+        super().__init__(value,**kwargs)
+        self.validated = True
         self.widget = QLineEdit()
         self.layout().addWidget(self.widget)
         self.validator = kwargs.get("validator", None)
@@ -54,7 +63,6 @@ class EasyInputBoxWidget(EasyWidget):
             self.kind = str
         self.widget.setValidator(self.validator)
         self.widget.setReadOnly(self.readonly)
-        self.widget.setEnabled(self.enabled)
         self.widget.textChanged.connect(self.value_changed)
 
         self.set_value(self.default)
@@ -70,19 +78,25 @@ class EasyInputBoxWidget(EasyWidget):
         self.widget.blockSignals(False)
 
     def value_changed(self):
-        super().value_changed()
         if self.validator is not None and self.validator.validate(self.widget.text(), 0)[0] != QValidator.Acceptable:
             self.widget.setStyleSheet("color: red")
-            return
-        self.widget.setStyleSheet("color: black")
+            self.validated = False
+        else:
+            self.widget.setStyleSheet("color: black")
+            self.validated = True
+
+        super().value_changed()
+
+    def is_ok(self):
+        return self.validated
 
     def set_enabled(self, enabled):
         self.widget.setEnabled(enabled)
 
 class EasyCheckBoxWidget(EasyWidget):
 
-        def __init__(self,  **kwargs):
-            super().__init__(**kwargs)
+        def __init__(self, value, **kwargs):
+            super().__init__(value,**kwargs)
             self.widget = QCheckBox()
             self.widget.setEnabled(self.enabled)
             self.widget.setChecked(self.default if self.default is not None else False)
@@ -99,92 +113,98 @@ class EasyCheckBoxWidget(EasyWidget):
 
 class EasySliderWidget(EasyWidget):
 
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self.slider = QSlider()
-            self.text = QLabel()
-            if kwargs.get("align", Qt.AlignLeft) == Qt.AlignRight:
-                self.layout().addWidget(self.slider)
-                self.layout().addWidget(self.text)
-            else:
-                self.layout().addWidget(self.text)
-                self.layout().addWidget(self.slider)
+    class MySlider(QSlider):
+        def wheelEvent(self, e):
+            e.ignore()
 
-            self.slider.setOrientation(1)
-            self.slider.setEnabled(self.enabled)
-            self.slider.setMinimum(kwargs.get("min", -1000))
-            self.slider.setMaximum(kwargs.get("max", 100))
+    def __init__(self, value,**kwargs):
+        super().__init__(value,**kwargs)
+        self.slider = self.MySlider()
+        self.text = QLabel()
+        if kwargs.get("align", Qt.AlignLeft) == Qt.AlignRight:
+            self.layout().addWidget(self.slider)
+            self.layout().addWidget(self.text)
+        else:
+            self.layout().addWidget(self.text)
+            self.layout().addWidget(self.slider)
 
-            self.format = kwargs.get("format", ".0f")
-            self.suffix = kwargs.get("suffix", "")
-            self.den = kwargs.get("den", 1)
-            self.show_value = kwargs.get("show_value", False)
+        self.slider.setOrientation(1)
+        self.slider.setEnabled(self.enabled)
+        self.slider.setMinimum(kwargs.get("min", -1000))
+        self.slider.setMaximum(kwargs.get("max", 100))
 
-            self.slider.setValue(self.default if self.default is not None else 0)
-            self.slider.valueChanged.connect(self.value_changed)
-            self.text.setText(str(self.slider.value()*self.den))
-            self.text.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            text = str(self.slider.maximum()/self.den)
-            max_value_formatted = format(float(text), self.format) + self.suffix
+        self.format = kwargs.get("format", ".0f")
+        self.suffix = kwargs.get("suffix", "")
+        self.den = kwargs.get("den", 1)
+        self.show_value = kwargs.get("show_value", False)
 
-            text = str(self.slider.minimum() / self.den)
-            min_value_formatted =  format(float(text), self.format) + self.suffix
+        self.slider.setValue(self.default if self.default is not None else 0)
+        self.slider.valueChanged.connect(self.value_changed)
+        self.text.setText(str(self.slider.value()*self.den))
+        self.text.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        text = str(self.slider.maximum()/self.den)
+        max_value_formatted = format(float(text), self.format) + self.suffix
 
-            text_length = max(QFontMetrics(self.text.font()).boundingRect(max_value_formatted).width(),
-                                QFontMetrics(self.text.font()).boundingRect(min_value_formatted).width())
-            self.text.sizePolicy().setHorizontalPolicy(QSizePolicy.Minimum)
-            self.text.setMinimumWidth(text_length)
-            self.text.setMaximumWidth(text_length)
-            self.text.setVisible(self.show_value)
-            self.set_value(self.default)
+        text = str(self.slider.minimum() / self.den)
+        min_value_formatted =  format(float(text), self.format) + self.suffix
 
-        def get_value(self):
-            return self.slider.value()
+        text_length = max(QFontMetrics(self.text.font()).boundingRect(max_value_formatted).width(),
+                            QFontMetrics(self.text.font()).boundingRect(min_value_formatted).width())
+        self.text.sizePolicy().setHorizontalPolicy(QSizePolicy.Minimum)
+        self.text.setMinimumWidth(text_length)
+        self.text.setMaximumWidth(text_length)
+        self.text.setVisible(self.show_value)
+        self.set_value(self.default)
 
-        def set_value(self, value):
-            self.slider.blockSignals(True)
-            self.slider.setValue(value if value is not None else 0)
-            self.slider.blockSignals(False)
-            self.text.setText(str(self.slider.value()*self.den))
+    def get_value(self):
+        return self.slider.value()
 
-        def value_changed(self):
-            super().value_changed()
-            self.text.setText(format(self.slider.value()/self.den, self.format) + self.suffix)
+    def set_value(self, value):
+        self.slider.blockSignals(True)
+        self.slider.setValue(value if value is not None else 0)
+        self.slider.blockSignals(False)
+        self.text.setText(str(self.slider.value()*self.den))
 
-        def set_enabled(self, enabled):
-            self.slider.setEnabled(enabled)
+    def value_changed(self):
+        super().value_changed()
+        self.text.setText(format(self.slider.value()/self.den, self.format) + self.suffix)
+
+    def set_enabled(self, enabled):
+        self.slider.setEnabled(enabled)
 
 class EasyComboBoxWidget(EasyWidget):
+    class MyComboBox(QComboBox):
+        def wheelEvent(self, e):
+            e.ignore()
 
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self.widget = QComboBox()
-            self.widget.addItems(kwargs.get("items", []))
-            self.widget.setEnabled(self.enabled)
-            self.widget.setCurrentIndex(self.default if self.default is not None else 0)
-            self.widget.currentIndexChanged.connect(self.value_changed)
-            self.layout().addWidget(self.widget)
+    def __init__(self, value,**kwargs):
+        super().__init__(value,**kwargs)
+        self.widget = self.MyComboBox()
+        self.widget.addItems(kwargs.get("items", []))
+        self.widget.setEnabled(self.enabled)
+        self.widget.setCurrentIndex(self.default if self.default is not None else 0)
+        self.widget.currentIndexChanged.connect(self.value_changed)
+        self.layout().addWidget(self.widget)
 
-        def get_value(self):
-            return self.widget.currentIndex()
+    def get_value(self):
+        return self.widget.currentIndex()
 
-        def set_value(self, value):
-            self.widget.blockSignals(True)
-            self.widget.setCurrentIndex(value if value is not None else 0)
-            self.widget.blockSignals(False)
+    def set_value(self, value):
+        self.widget.blockSignals(True)
+        self.widget.setCurrentIndex(value if value is not None else 0)
+        self.widget.blockSignals(False)
 
-        def set_enabled(self, enabled):
-            self.widget.setEnabled(enabled)
-
-
+    def set_enabled(self, enabled):
+        self.widget.setEnabled(enabled)
 
 class EasyFileDialogWidget(EasyWidget):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, value,**kwargs):
+        super().__init__(value,**kwargs)
         self.type = kwargs.get("type", "open")
         if self.type not in ["file", "dir"]:
             raise ValueError("Invalid type")
         self.widget = QLineEdit()
+        self.widget.setText(self.default)
         self.btn = QPushButton()
         self.btn.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))
         self.btn_discard = QPushButton()
@@ -214,3 +234,133 @@ class EasyFileDialogWidget(EasyWidget):
     def discard(self):
         self.widget.setText("")
         self.widget_value_changed.emit(self)
+
+    def get_value(self):
+        return self.widget.text()
+
+    def set_value(self, value):
+        print("ssssssssssstiing", value)
+        self.widget.setText(value)
+
+class EasyBasicListWidget(EasyWidget):
+    def __init__(self,value, **kwargs):
+        super().__init__(value,**kwargs)
+        # get parameters
+        self.widget_height = kwargs.get("height", 50)
+        self.editable = kwargs.get("editable", True)
+        self.type = str
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.widget = QWidget()
+        self.widget.setLayout(layout)
+        self.widget.setContentsMargins(0, 0, 0, 0)
+
+        button_add = QPushButton("+")
+        button_del = QPushButton("−")
+        button_edit = QPushButton("✎")
+        button_add.clicked.connect(self.add_item)
+        button_edit.clicked.connect(self.edit_item)
+        button_del.clicked.connect(self.del_item)
+
+        for button in [button_add, button_del, button_edit]:
+            button.setFixedSize(25, 25)
+            button.setStyleSheet("font-size: 14px")
+
+        h_layout = QHBoxLayout()
+        h_layout.addWidget(button_add)
+        h_layout.addWidget(button_edit)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        h_layout.addWidget(spacer)
+        h_layout.addWidget(button_del)
+        h_layout.setAlignment(Qt.AlignLeft)
+
+        self.list_widget = QListWidget()
+        layout.addWidget(self.list_widget)
+
+        if self.editable:
+            layout.addLayout(h_layout)
+
+        self.list_widget.addItems([str(i) for i in self.default])
+        self.list_widget.setFont(QFont("Courier New", 10))
+        self.list_widget.setMaximumHeight(self.widget_height)
+
+        self.layout().addWidget(self.widget)
+
+    def ask_value(self):  # retry submit
+        current = self.list_widget.currentItem().text() if self.list_widget.currentItem() is not None else ""
+        dialog = InputDialog(current)
+        if dialog.exec_():
+            return dialog.input.text()
+        return None
+
+    def add_item(self):
+        value = self.ask_value()
+        if value is not None:
+            self.list_widget.addItem(str(value))
+            self.widget_value_changed.emit(self)
+
+    def del_item(self):
+        if self.list_widget.currentItem():
+            self.list_widget.takeItem(self.list_widget.currentRow())
+            self.widget_value_changed.emit(self)
+
+    def edit_item(self):
+        if self.list_widget.currentItem():
+            value = self.ask_value()
+            if value:
+                self.list_widget.currentItem().setText(value)
+                self.widget_value_changed.emit(self)
+
+    def get_value(self):
+        return [self.type(self.list_widget.item(i).text()) for i in range(self.list_widget.count())]
+
+    def set_value(self, value):
+        self.list_widget.clear()
+        if value is not None:
+            self.list_widget.addItems(value)
+
+class EasyListWidget(EasyBasicListWidget):
+    def __init__(self, value,**kwargs):
+        super().__init__(value,**kwargs)
+        # Establish validator
+        self.validator = kwargs.get("validator", None)
+        if self.validator is not None:
+            self.type = get_validator_type(self.validator)
+        else:
+            types = set([type(e) for e in self.default])
+            if len(types) == 1:
+                self.type = types.pop()
+                self.validator = get_validator_from_type(self.type)
+            else:
+                raise ValueError("Mixed types in default list")
+
+    def ask_value(self):  # retry submit
+        current = self.list_widget.currentItem().text() if self.list_widget.currentItem() is not None else ""
+        dialog = InputDialog(current, self.validator)
+        if dialog.exec_():
+            return dialog.input.text()
+        return None
+
+class EasyFileListWidget(EasyBasicListWidget):
+    def __init__(self, value,**kwargs):
+        super().__init__(value,**kwargs)
+        self.kind = kwargs.get("type", "file")
+        if self.kind not in ["file", "dir"]:
+            raise ValueError("Invalid type")
+
+    def ask_value(self):
+        current = self.list_widget.currentItem().text() if self.list_widget.currentItem() is not None else ""
+        if self.kind == "file":
+            file, ok = QFileDialog.getOpenFileName(self, "Open File", current)
+        elif self.kind == "dir":
+            file = QFileDialog.getExistingDirectory(self, "Select Directory", current)
+            ok = True
+        else:
+            ok, file = False, None
+
+        if ok and file:
+            return file
+        return None
