@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
     QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QDialog, QDialogButtonBox
 
 from easydialog import EasyDialog
+from easynodes import Root, Subsection
 from easytree import EasyTree
-from easywidgets import Root, Subsection
 
 
 class EasyConfig2:

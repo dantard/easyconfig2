@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
-from easywidgets import Subsection
+from easynodes import Subsection
 from tripledict import TripleDict
 
 

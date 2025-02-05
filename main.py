@@ -8,8 +8,9 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QApplication, QTree
     QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy
 
 from easyconfig import EasyConfig2
+from easynodes import EasyFileDialog
 from easytree import EasyTree
-from easywidgets import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
+from easynodes import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox, EasyFileDialogWidget)
 #, EasyCheckBox, EasyComboBox, EasySlider)
 
 app = QApplication(sys.argv)
@@ -34,10 +35,14 @@ class MainWindow(QWidget):
         tl3 = ss1.add_child(EasyCheckBox("cab1", pretty = "Checkbox"))
         tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
         tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider", default=-200, show_value=True))
+        print("tl5 is ", tl5)
+        tl6 = ss1.get_child("cab13", EasyInputBox("csab13", default=16))
+        print("tl6 is ", tl6)
 
         ss1.add_child(EasyInputBox("Name2", default=17))
         ss1.add_child(EasyInt("Name3", default=18))
         ss1.add_child(EasyCheckBox("Name4", default=True))
+        ss1.add_child(EasyFileDialog("Name5", type="dir"))
 
 
         ss1.add_child(Subsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
