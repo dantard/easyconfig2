@@ -60,7 +60,8 @@ class EasyTree(QTreeWidget):
 
     def widget_value_changed(self, widget):
         node, _ = self.items.get(widget)
-        node.update_value(widget.get_value())
+        if node.use_inmediate_update():
+            node.update_value(widget.get_value())
         self.check_dependency(node)
 
     def node_value_changed(self, node):
@@ -104,6 +105,8 @@ class EasyTree(QTreeWidget):
 
         def traverse(item, info2):
             if item.childCount() == 0:
+                return
+            if len(info2) == 0:
                 return
 
             item.setExpanded(info2.pop(0) == "1")

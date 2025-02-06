@@ -1,3 +1,6 @@
+import base64
+import os
+
 import yaml
 
 from easydialog import EasyDialog
@@ -13,7 +16,7 @@ class EasyConfig2:
         self.dependencies = {}
         self.root = Root()
         self.private = self.root.add_child(Subsection("easyconfig", hidden=True))
-        self.collapsed = self.private.add_child(PrivateNode("collapsed", default=None, save_if_none=False))
+        self.collapsed = self.private.add_child(PrivateNode("collapsed", default=""))
         self.hidden = self.private.add_child(PrivateNode("hidden", default=None, save_if_none=False))
         self.disabled = self.private.add_child(PrivateNode("disabled", default=None, save_if_none=False))
 
@@ -66,24 +69,36 @@ class EasyConfig2:
                     if child.get() is not None or child.is_savable_if_none():
                         values[child.get_key()] = child.get()
 
-    def save(self, filename):
+    def save(self, filename, encoded=False):
         values = self.get_dictionary()
-        with open(filename, "w") as f:
-            yaml.dump(values, f)
+        if encoded:
+            # encode in base64
+            string = yaml.dump(values)
+            string = base64.b64encode(string.encode()).decode()
+            with open(filename, "w") as f:
+                f.write(string)
+        else:
+            with open(filename, "w") as f:
+                yaml.dump(values, f)
 
     def get_dictionary(self):
         values = {}
         self.create_dictionary(self.root, values)
         return values
 
-    def load(self, filename):
-        with open(filename, "r") as f:
-            values = yaml.safe_load(f)
-            print("values", values)
-            self.parse(values)
+    def load(self, filename, encoded=False):
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                if encoded:
+                    string = f.read()
+                    string = base64.b64decode(string).decode()
+                    values = yaml.safe_load(string)
+                else:
+                    values = yaml.safe_load(f)
 
-        for key in self.hidden.get([]):
-            self.root.get_node(key).set_hidden(True)
+                self.parse(values)
+                for key in self.hidden.get([]):
+                    self.root.get_node(key).set_hidden(True)
 
     def edit(self):
         dialog = EasyDialog(EasyTree(self.root, self.dependencies))
@@ -95,22 +110,6 @@ class EasyConfig2:
 
     def parse(self, values):
         self.distribute_values(self.root, values)
-        print("distribute", self.transform_dict(values))
-        # manage easyconfig private values
-        # self.easyconfig_private = values.get("easyconfig", {})
-        # collapsed = self.easyconfig_private.get("collapsed", None)
-        # if collapsed:
-        #     self.set_collapsed_recursive(collapsed)
-        #
-        # # Apply Hidden property at load time
-        # hidden = self.easyconfig_private.get("hidden", [])
-        # for node in hidden:
-        #     self.root.get_node(node).set_hidden(True)
-        #
-        # # Apply Disabled property at load time
-        # disabled = self.easyconfig_private.get("disabled", [])
-        # for node in disabled:
-        #     self.root.get_node(node).set_editable(False)
 
     def add_dependencies(self, dependencies):
         for master, slave, fun in dependencies:

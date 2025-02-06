@@ -62,13 +62,16 @@ class EasyNode(QObject):
         self._node_value_changed.emit(self)
         self.value_changed.emit(self)
 
-    def update_value(self, value, force=False):
+
+    def use_inmediate_update(self):
+        return self.immediate_update
+
+    def update_value(self, value):
         print("widget_changed_received", value)
-        if self.immediate_update or force:
-            if self.value != value:
-                print("widget_changed_received: applying", value)
-                self.value = value
-                self.value_changed.emit(self)
+        if self.value != value:
+            print("widget_changed_received: applying", value)
+            self.value = value
+            self.value_changed.emit(self)
 
     def get_key(self):
         return self.key

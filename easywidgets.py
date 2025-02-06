@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics, QFont
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, \
-    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget
+    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget, QMessageBox
 
 from easydialog import InputDialog
 from easyutils import get_validator_type, get_validator_from_type
@@ -303,6 +303,10 @@ class EasyBasicListWidget(EasyWidget):
             self.widget_value_changed.emit(self)
 
     def del_item(self):
+        reply = QMessageBox.question(None, "Confirm", "Are you sure?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.No:
+            return
         if self.list_widget.currentItem():
             self.list_widget.takeItem(self.list_widget.currentRow())
             self.widget_value_changed.emit(self)
