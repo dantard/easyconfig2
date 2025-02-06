@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox, QLineEdit, QLabel
 
-from easyutils import get_validator_type
+from easyconfig2.easyutils import get_validator_type
 
 
 class EasyDialog(QDialog):

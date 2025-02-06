@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIntValidator
 
-from easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
+from easyconfig2.easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
     EasyFileDialogWidget, EasyListWidget, EasyFileListWidget
 
 
@@ -106,6 +106,13 @@ class EasyNode(QObject):
     def get_widget(self):
         return None
 
+    # compatibility with the previous version
+    def get_value(self):
+        return self.get()
+
+    def set_value(self, value):
+        self.set(value)
+
 
 class Subsection(EasyNode):
 
@@ -162,11 +169,39 @@ class Subsection(EasyNode):
             self.set_editable(editable)
             self.extended = True
 
+    # Compatibility with the previous version
+    def addCombobox(self, key, **kwargs):
+        node = EasyComboBox(key, **kwargs)
+        self.add_child(node)
+        return node
+    #
+    def addHidden(self, key, **kwargs):
+        node = Subsection(key, **kwargs, hidden=True)
+        self.add_child(node)
+        return node
+    #
+    def addList(self, key, **kwargs):
+        if self.hidden:
+            node = PrivateNode(key, **kwargs)
+        else:
+            node = EasyList(key, **kwargs)
+        self.add_child(node)
+        return node
+    #
+    def addCheckbox(self, key, **kwargs):
+        node = EasyCheckBox(key, **kwargs)
+        self.add_child(node)
+        return node
+    #
+    def addFolderChoice(self, key, **kwargs):
+        node = EasyFileDialog(key, **kwargs, type="dir")
+        self.add_child(node)
+        return node
+
 
 class Root(Subsection):
-
-    def __init__(self):
-        super().__init__("root")
+    def __init__(self, **kwargs):
+        super().__init__("root", **kwargs)
 
 
 class EasyInputBox(EasyNode):

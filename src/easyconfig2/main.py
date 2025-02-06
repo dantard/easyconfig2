@@ -3,9 +3,9 @@ import sys
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
 
-from easyconfig import EasyConfig2
-from easynodes import EasyFileDialog, PrivateNode, EasyList, EasyFileList
-from easynodes import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
+from easyconfig2.easyconfig import EasyConfig2
+from easyconfig2.easynodes import EasyFileDialog, PrivateNode, EasyList, EasyFileList
+from easyconfig2.easynodes import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
 
 # , EasyCheckBox, EasyComboBox, EasySlider)
 

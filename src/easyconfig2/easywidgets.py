@@ -3,8 +3,8 @@ from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetric
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, \
     QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget, QMessageBox
 
-from easydialog import InputDialog
-from easyutils import get_validator_type, get_validator_from_type
+from easyconfig2.easydialog import InputDialog
+from easyconfig2.easyutils import get_validator_type, get_validator_from_type
 
 
 class EasyWidget(QWidget):

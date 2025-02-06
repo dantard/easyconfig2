@@ -1,8 +1,8 @@
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 
-from easynodes import Subsection
-from tripledict import TripleDict
+from easyconfig2.easynodes import Subsection
+from easyconfig2.tripledict import TripleDict
 
 
 class EasyTree(QTreeWidget):
@@ -16,9 +16,17 @@ class EasyTree(QTreeWidget):
         self.items = TripleDict()
         self.populate(node)
         self.filter(node)
-        self.header().hide()
+        self.header().setVisible(False)
+        self.setSelectionMode(QAbstractItemView.NoSelection)
         self.expanded.connect(self.tree_expanded)
         self.collapsed.connect(self.tree_expanded)
+        self.expanded.connect(lambda: self.resizeColumnToContents(0))
+
+        proxy = self.model()
+        for row in range(proxy.rowCount()):
+            index = proxy.index(row, 0)
+            self.expand(index)
+        self.resizeColumnToContents(0)
 
     def tree_expanded(self):
         self.node.get_node("easyconfig/collapsed").set(self.get_collapsed_items())
@@ -101,6 +109,9 @@ class EasyTree(QTreeWidget):
         return "".join(info)
 
     def set_collapsed_items(self, info):
+        if info is None:
+            return
+
         info = list(info)
 
         def traverse(item, info2):
