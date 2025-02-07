@@ -47,7 +47,7 @@ class EasyTree(QTreeWidget):
     def filter(self, node):
         for child in node.get_children():
             if isinstance(child, Subsection):
-                print(child.get_pretty(), child.is_hidden())
+                # print(child.get_pretty(), child.is_hidden())
                 _, item = self.items[child]
                 item.setHidden(child.is_hidden())
                 self.filter(child)
@@ -131,19 +131,17 @@ class EasyTree(QTreeWidget):
             self.check_dependency(node)
 
     def check_dependency(self, node):
-        print("checking deps")
+        # print("checking deps")
         deps = self.dependencies.get(node, [])
         for slave, fun in deps:
             if isinstance(fun, (int, float, str, bool)):
                 widget1, _ = self.items.get(node)
                 widget2, _ = self.items.get(slave)
-                print("setting", fun, widget1.get_value())
                 widget2.set_enabled(widget1.get_value() != fun)
 
         for widget in self.items.keys2():
             if widget is not None and not widget.is_ok():
                 self.config_ok.emit(False)
-                print("NOOOOOOOOOOOT OK")
                 return
 
         self.config_ok.emit(True)

@@ -67,9 +67,9 @@ class EasyNode(QObject):
         return self.immediate_update
 
     def update_value(self, value):
-        print("widget_changed_received", value)
+        # print("widget_changed_received", value)
         if self.value != value:
-            print("widget_changed_received: applying", value)
+            # print("widget_changed_received: applying", value)
             self.value = value
             self.value_changed.emit(self)
 
@@ -145,7 +145,7 @@ class Subsection(EasyNode):
 
     def get_node(self, path):
         path = path.strip("/").split("/")
-        print("path", path)
+        # print("path", path)
 
         def get_node_recursive(node, path2):
             for child in node.node_children:
@@ -159,9 +159,9 @@ class Subsection(EasyNode):
         return get_node_recursive(self, path)
 
     def check_extended(self, dictionary):
-        print("check extended", dictionary)
+        # print("check extended", dictionary)
         if (hidden := dictionary.get("$hidden", None)) is not None:
-            print("hidden", "***")
+            # print("hidden", "***")
             self.set_hidden(hidden)
             self.extended = True
 

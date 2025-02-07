@@ -238,7 +238,6 @@ class EasyFileDialogWidget(EasyWidget):
         return self.widget.text()
 
     def set_value(self, value):
-        print("ssssssssssstiing", value)
         self.widget.setText(value)
 
 

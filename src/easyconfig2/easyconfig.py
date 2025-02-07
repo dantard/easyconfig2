@@ -90,7 +90,7 @@ class EasyConfig2:
                     values = yaml.safe_load(f)
 
                 self.parse(values, emit)
-                print("Loaded values", filename, values)
+                # print("Loaded values", filename, values)
                 for key in self.hidden.get([]):
                     self.root_node.get_node(key).set_hidden(True)
 
@@ -113,7 +113,7 @@ class EasyConfig2:
         def parse_recursive(node, values):
             for child in node.get_children():
                 if isinstance(child, Subsection):
-                    inner_dict = values.get(child.get_key())
+                    inner_dict = values.get(child.get_key(), {})
                     parse_recursive(child, inner_dict)
                     child.check_extended(inner_dict)
                 else:
