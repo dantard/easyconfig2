@@ -198,6 +198,16 @@ class Subsection(EasyNode):
         self.add_child(node)
         return node
 
+    def addSubSection(self, key, **kwargs):
+        node = Subsection(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addString(self, key, **kwargs):
+        node = EasyInputBox(key, **kwargs)
+        self.add_child(node)
+        return node
+
 
 class Root(Subsection):
     def __init__(self, **kwargs):
