@@ -2,7 +2,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIntValidator
 
 from easyconfig2.easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
-    EasyFileDialogWidget, EasyListWidget, EasyFileListWidget
+    EasyFileDialogWidget, EasyListWidget, EasyFileListWidget, EasyEditBoxWidget, EasyPasswordEditWidget
 
 
 class EasyNode(QObject):
@@ -62,7 +62,6 @@ class EasyNode(QObject):
         self._node_value_changed.emit(self)
         self.value_changed.emit(self)
 
-
     def use_inmediate_update(self):
         return self.immediate_update
 
@@ -114,106 +113,6 @@ class EasyNode(QObject):
         self.set(value)
 
 
-class Subsection(EasyNode):
-
-    def __init__(self, key, **kwargs):
-        super().__init__(key, **kwargs)
-        self.node_children = []
-
-    def add_child(self, child):
-        child.update_kwargs(self.kwargs)
-        self.node_children.append(child)
-        return child
-
-    def get_child(self, key, default=None):
-        if key is None and default is not None:
-            key = default.get_key()
-
-        for child in self.node_children:
-            if child.get_key() == key:
-                return child
-        if default is not None:
-            return self.add_child(default)
-
-        return None
-
-    def get_arguments(self):
-        return ["pretty", "save", "hidden", "editable", "immediate", "save_if_none"]
-
-    def get_children(self):
-        return self.node_children
-
-    def get_node(self, path):
-        path = path.strip("/").split("/")
-        # print("path", path)
-
-        def get_node_recursive(node, path2):
-            for child in node.node_children:
-                if len(path2) == 1 and child.get_key() == path2[0]:
-                    return child
-                if isinstance(child, Subsection):
-                    if child.get_key() == path2[0]:
-                        return get_node_recursive(child, path2[1:])
-            return None
-
-        return get_node_recursive(self, path)
-
-    def check_extended(self, dictionary):
-        # print("check extended", dictionary)
-        if (hidden := dictionary.get("$hidden", None)) is not None:
-            # print("hidden", "***")
-            self.set_hidden(hidden)
-            self.extended = True
-
-        if (editable := dictionary.get("$editable", None)) is not None:
-            self.set_editable(editable)
-            self.extended = True
-
-    # Compatibility with the previous version
-    def addCombobox(self, key, **kwargs):
-        node = EasyComboBox(key, **kwargs)
-        self.add_child(node)
-        return node
-    #
-    def addHidden(self, key, **kwargs):
-        node = Subsection(key, **kwargs, hidden=True)
-        self.add_child(node)
-        return node
-    #
-    def addList(self, key, **kwargs):
-        if self.hidden:
-            node = PrivateNode(key, **kwargs)
-        else:
-            node = EasyList(key, **kwargs)
-        self.add_child(node)
-        return node
-    #
-    def addCheckbox(self, key, **kwargs):
-        node = EasyCheckBox(key, **kwargs)
-        self.add_child(node)
-        return node
-    #
-    def addFolderChoice(self, key, **kwargs):
-        node = EasyFileDialog(key, **kwargs, type="dir")
-        self.add_child(node)
-        return node
-
-    def addSubSection(self, key, **kwargs):
-        node = Subsection(key, **kwargs)
-        self.add_child(node)
-        return node
-
-    def addString(self, key, **kwargs):
-        node = EasyInputBox(key, **kwargs)
-        self.add_child(node)
-        return node
-
-
-class Root(Subsection):
-    def __init__(self, **kwargs):
-        super().__init__("root", **kwargs)
-
-
 class EasyInputBox(EasyNode):
 
     def get_widget(self):
@@ -221,6 +120,15 @@ class EasyInputBox(EasyNode):
 
     def get_arguments(self):
         return super().get_arguments() + ["validator", "readonly"]
+
+
+class EasyEditBox(EasyNode):
+
+    def get_widget(self):
+        return EasyEditBoxWidget(self.value, **self.kwargs)
+
+    def get_arguments(self):
+        return super().get_arguments() + ["readonly", "max_height"]
 
 
 class EasyInt(EasyInputBox):
@@ -233,6 +141,15 @@ class EasyInt(EasyInputBox):
 
     def get_arguments(self):
         return super().get_arguments() + ["min", "max"]
+
+
+class EasyPasswordEdit(EasyInputBox):
+
+    def get_widget(self):
+        return EasyPasswordEditWidget(self.value, **self.kwargs)
+
+    def get_arguments(self):
+        return super().get_arguments() + ["readonly", "base64"]
 
 
 class EasyCheckBox(EasyNode):
@@ -271,10 +188,10 @@ class EasyFileDialog(EasyNode):
         return EasyFileDialogWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["type"]
+        return super().get_arguments() + ["type", "extension"]
 
 
-class PrivateNode(EasyNode):
+class EasyPrivateNode(EasyNode):
 
     def __init__(self, key, **kwargs):
         super().__init__(key, **kwargs)
@@ -303,3 +220,182 @@ class EasyFileList(EasyNode):
 
     def get_widget(self):
         return EasyFileListWidget(self.value, **self.kwargs)
+
+
+class EasySubsection(EasyNode):
+
+    def __init__(self, key, **kwargs):
+        super().__init__(key, **kwargs)
+        self.node_children = []
+
+    def add_child(self, child):
+        child.update_kwargs(self.kwargs)
+        self.node_children.append(child)
+        return child
+
+    def get_child(self, key, node=None):
+        if key is None and node is not None:
+            key = node.get_key()
+
+        for child in self.node_children:
+            if child.get_key() == key:
+                return child
+        if node is not None:
+            return self.add_child(node)
+
+        return None
+
+    def get_arguments(self):
+        return ["pretty", "save", "hidden", "editable", "immediate", "save_if_none"]
+
+    def get_children(self):
+        return self.node_children
+
+    def get_node(self, path):
+        path = path.strip("/").split("/")
+
+        # print("path", path)
+
+        def get_node_recursive(node, path2):
+            for child in node.node_children:
+                if len(path2) == 1 and child.get_key() == path2[0]:
+                    return child
+                if isinstance(child, EasySubsection):
+                    if child.get_key() == path2[0]:
+                        return get_node_recursive(child, path2[1:])
+            return None
+
+        return get_node_recursive(self, path)
+
+    def check_extended(self, dictionary):
+        # print("check extended", dictionary)
+        if (hidden := dictionary.get("$hidden", None)) is not None:
+            # print("hidden", "***")
+            self.set_hidden(hidden)
+            self.extended = True
+
+        if (editable := dictionary.get("$editable", None)) is not None:
+            self.set_editable(editable)
+            self.extended = True
+
+    # Utility function to add a subsection
+    def addCombobox(self, key, **kwargs):
+        node = EasyComboBox(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    #
+    def addHidden(self, key, **kwargs):
+        node = EasySubsection(key, **kwargs, hidden=True)
+        self.add_child(node)
+        return node
+
+    #
+    def addList(self, key, **kwargs):
+        if self.hidden:
+            node = EasyPrivateNode(key, **kwargs)
+        else:
+            node = EasyList(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    #
+    def addCheckbox(self, key, **kwargs):
+        node = EasyCheckBox(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    #
+    def addFolderChoice(self, key, **kwargs):
+        node = EasyFileDialog(key, **kwargs, type="dir")
+        self.add_child(node)
+        return node
+
+    def addSubSection(self, key, **kwargs):
+        node = EasySubsection(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addString(self, key, **kwargs):
+        node = EasyInputBox(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addPassword(self, key, **kwargs):
+        node = EasyPasswordEdit(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addSlider(self, key, **kwargs):
+        node = EasySlider(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addEditBox(self, key, **kwargs):
+        node = EasyEditBox(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addInt(self, key, **kwargs):
+        node = EasyInt(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addFileList(self, key, **kwargs):
+        node = EasyFileList(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addPrivate(self, key, **kwargs):
+        node = EasyPrivateNode(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addFileChoice(self, key, **kwargs):
+        node = EasyFileDialog(key, **kwargs, type="file")
+        self.add_child(node)
+        return node
+
+    def getString(self, key, **kwargs):
+        return self.get_child(key, EasyInputBox(key, **kwargs))
+
+    def getSlider(self, key, **kwargs):
+        return self.get_child(key, EasySlider(key, **kwargs))
+
+    def getEditBox(self, key, **kwargs):
+        return self.get_child(key, EasyEditBox(key, **kwargs))
+
+    def getInt(self, key, **kwargs):
+        return self.get_child(key, EasyInt(key, **kwargs))
+
+    def getCheckBox(self, key, **kwargs):
+        return self.get_child(key, EasyCheckBox(key, **kwargs))
+
+    def getComboBox(self, key, **kwargs):
+        return self.get_child(key, EasyComboBox(key, **kwargs))
+
+    def getPassword(self, key, **kwargs):
+        return self.get_child(key, EasyPasswordEdit(key, **kwargs))
+
+    def getFolderChoice(self, key, **kwargs):
+        return self.get_child(key, EasyFileDialog(key, **kwargs, type="dir"))
+
+    def getFileChoice(self, key, **kwargs):
+        return self.get_child(key, EasyFileDialog(key, **kwargs, type="file"))
+
+    def getList(self, key, **kwargs):
+        return self.get_child(key, EasyList(key, **kwargs))
+
+    def getFileList(self, key, **kwargs):
+        return self.get_child(key, EasyFileList(key, **kwargs))
+
+    def getPrivate(self, key, **kwargs):
+        return self.get_child(key, EasyPrivateNode(key, **kwargs))
+
+    def getSubSection(self, key, **kwargs):
+        return self.get_child(key, EasySubsection(key, **kwargs))
+
+
+class Root(EasySubsection):
+    def __init__(self, **kwargs):
+        super().__init__("root", **kwargs)

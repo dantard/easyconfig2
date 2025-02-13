@@ -4,8 +4,8 @@ from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
 
 from easyconfig2.easyconfig import EasyConfig2
-from easyconfig2.easynodes import EasyFileDialog, PrivateNode, EasyList, EasyFileList
-from easyconfig2.easynodes import (Subsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
+from easyconfig2.easynodes import EasyFileDialog, EasyPrivateNode, EasyList, EasyFileList, EasyEditBox, EasyPasswordEdit
+from easyconfig2.easynodes import (EasySubsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
 
 # , EasyCheckBox, EasyComboBox, EasySlider)
 
@@ -21,8 +21,8 @@ class MainWindow(QWidget):
 
         self.config = EasyConfig2()
 
-        ss1 = self.config.add(Subsection("ss1", immediate=True, save_if_none=False))
-        ss2 = self.config.add(Subsection("ss2"))
+        ss1 = self.config.add(EasySubsection("ss1", immediate=True, save_if_none=False))
+        ss2 = self.config.add(EasySubsection("ss2"))
         ss1.add_child(EasyList("Name1333", default=[1, 2, 3], validator=QIntValidator(0, 100), height=100))
         ss1.add_child(EasyFileList("Name13332", default=[1, 2, 3], height=100))
 
@@ -31,17 +31,17 @@ class MainWindow(QWidget):
         tl3 = ss1.add_child(EasyCheckBox("cab1", pretty="Checkbox"))
         tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
         tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider", default=-200, show_value=True))
-        print("tl5 is ", tl5)
+        tl5 = ss1.add_child(EasyEditBox("cab132", pretty="EditBox", default="Hello"))
+        tl5 = ss1.add_child(EasyPasswordEdit("cab1322", pretty="Password", default="Hello"))
         tl6 = ss1.get_child("cab13", EasyInputBox("csab13", default=16))
-        print("tl6 is ", tl6)
 
         ss1.add_child(EasyInputBox("Name2", default=17))
         ss1.add_child(EasyInt("Name3", default=18))
         ss1.add_child(EasyCheckBox("Name4", default=True))
         ss1.add_child(EasyFileDialog("Name5", type="dir"))
-        ss1.add_child(PrivateNode("Name6", default={"a": [1, 2, 3]}))
+        ss1.add_child(EasyPrivateNode("Name6", default={"a": [1, 2, 3]}))
 
-        ss1.add_child(Subsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
+        ss1.add_child(EasySubsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
 
         self.config.add_dependencies([(self.tl1, tl2, 12)])
         self.config.load("config.yaml")

@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 
-from easyconfig2.easynodes import Subsection
+from easyconfig2.easynodes import EasySubsection
 from easyconfig2.tripledict import TripleDict
 
 
@@ -46,7 +46,7 @@ class EasyTree(QTreeWidget):
 
     def filter(self, node):
         for child in node.get_children():
-            if isinstance(child, Subsection):
+            if isinstance(child, EasySubsection):
                 # print(child.get_pretty(), child.is_hidden())
                 _, item = self.items[child]
                 item.setHidden(child.is_hidden())
@@ -86,7 +86,7 @@ class EasyTree(QTreeWidget):
             parent = self.invisibleRootItem()
 
         for child in node.get_children():
-            if isinstance(child, Subsection):
+            if isinstance(child, EasySubsection):
                 # if not child.is_hidden():
                 self.populate(child, parent)
             else:

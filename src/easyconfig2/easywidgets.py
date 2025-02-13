@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics, QFont
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, \
-    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget, QMessageBox
+    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget, QMessageBox, QPlainTextEdit
 
 from easyconfig2.easydialog import InputDialog
 from easyconfig2.easyutils import get_validator_type, get_validator_from_type
@@ -90,6 +90,67 @@ class EasyInputBoxWidget(EasyWidget):
         self.widget.setEnabled(enabled)
 
 
+class EasyEditBoxWidget(EasyWidget):
+
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
+        self.widget = QPlainTextEdit()
+        self.layout().addWidget(self.widget)
+        self.readonly = kwargs.get("readonly", False)
+        self.max_height = kwargs.get("max_height", 100)
+
+        self.widget.setReadOnly(self.readonly)
+        self.widget.textChanged.connect(self.value_changed)
+
+        self.set_value(self.default)
+
+    def get_value(self):
+        if self.widget.toPlainText() != "":
+            return self.widget.toPlainText()
+        return None
+
+    def set_value(self, value):
+        self.widget.blockSignals(True)
+        self.widget.setPlainText(str(value) if value is not None else "")
+        self.widget.blockSignals(False)
+
+    def set_enabled(self, enabled):
+        self.widget.setEnabled(enabled)
+
+
+class EasyPasswordEditWidget(EasyWidget):
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
+        self.widget = QLineEdit()
+        self.widget.setEchoMode(QLineEdit.Password)
+        self.layout().addWidget(self.widget)
+        self.readonly = kwargs.get("readonly", False)
+        self.base64 = kwargs.get("base64", True)
+        if self.default is not None and self.default != "":
+            if self.base64:
+                self.set_value(self.default.encode("utf-8").hex())
+            else:
+                self.set_value(self.default)
+        else:
+            self.set_value("")
+
+    def get_value(self):
+        value = self.widget.text()
+        if self.base64:
+            return value.encode("utf-8").hex()
+        return value
+
+    def get_plain_value(self):
+        return super().get_value()
+
+    def set_value(self, value):
+        if self.base64:
+            value = bytes.fromhex(value).decode("utf-8")
+        self.widget.blockSignals(True)
+        self.widget.setText(value if value is not None else "")
+        self.widget.blockSignals(False)
+
+
 class EasyCheckBoxWidget(EasyWidget):
 
     def __init__(self, value, **kwargs):
@@ -127,7 +188,7 @@ class EasySliderWidget(EasyWidget):
 
         self.slider.setOrientation(1)
         self.slider.setEnabled(self.enabled)
-        self.slider.setMinimum(kwargs.get("min", -1000))
+        self.slider.setMinimum(kwargs.get("min", 0))
         self.slider.setMaximum(kwargs.get("max", 100))
 
         self.format = kwargs.get("format", ".0f")
@@ -135,9 +196,8 @@ class EasySliderWidget(EasyWidget):
         self.den = kwargs.get("den", 1)
         self.show_value = kwargs.get("show_value", False)
 
-        self.slider.setValue(self.default if self.default is not None else 0)
+        self.slider.setValue(int(self.default if self.default is not None else 0))
         self.slider.valueChanged.connect(self.value_changed)
-        self.text.setText(str(self.slider.value() * self.den))
         self.text.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         text = str(self.slider.maximum() / self.den)
         max_value_formatted = format(float(text), self.format) + self.suffix
@@ -154,16 +214,19 @@ class EasySliderWidget(EasyWidget):
         self.set_value(self.default)
 
     def get_value(self):
-        return self.slider.value()
+        return self.slider.value() / self.den
 
     def set_value(self, value):
         self.slider.blockSignals(True)
-        self.slider.setValue(value if value is not None else 0)
+        self.slider.setValue(int(self.den * (value if value is not None else 0)))
         self.slider.blockSignals(False)
-        self.text.setText(str(self.slider.value() * self.den))
+        self.update_text()
 
     def value_changed(self):
         super().value_changed()
+        self.update_text()
+
+    def update_text(self):
         self.text.setText(format(self.slider.value() / self.den, self.format) + self.suffix)
 
     def set_enabled(self, enabled):
@@ -199,9 +262,10 @@ class EasyComboBoxWidget(EasyWidget):
 class EasyFileDialogWidget(EasyWidget):
     def __init__(self, value, **kwargs):
         super().__init__(value, **kwargs)
-        self.type = kwargs.get("type", "open")
+        self.type = kwargs.get("type", "file")
         if self.type not in ["file", "dir"]:
             raise ValueError("Invalid type")
+        self.extension = kwargs.get("extension", "")
         self.widget = QLineEdit()
         self.widget.setText(self.default)
         self.btn = QPushButton()
@@ -219,7 +283,7 @@ class EasyFileDialogWidget(EasyWidget):
 
     def open_file(self):
         if self.type == "file":
-            file, ok = QFileDialog.getOpenFileName(self, "Open File", self.default)
+            file, ok = QFileDialog.getOpenFileName(self, "Open File", self.default, self.extension)
         elif self.type == "dir":
             file = QFileDialog.getExistingDirectory(self, "Select Directory", self.default)
             ok = True

@@ -4,7 +4,7 @@ import os
 import yaml
 
 from easyconfig2.easydialog import EasyDialog
-from easyconfig2.easynodes import Root, Subsection, PrivateNode
+from easyconfig2.easynodes import Root, EasySubsection, EasyPrivateNode
 from easyconfig2.easytree import EasyTree
 
 
@@ -15,10 +15,10 @@ class EasyConfig2:
         self.tree = None
         self.dependencies = {}
         self.root_node = Root(**kwargs)
-        self.private = self.root_node.add_child(Subsection("easyconfig", hidden=True))
-        self.collapsed = self.private.add_child(PrivateNode("collapsed", default=""))
-        self.hidden = self.private.add_child(PrivateNode("hidden", default=None, save_if_none=False))
-        self.disabled = self.private.add_child(PrivateNode("disabled", default=None, save_if_none=False))
+        self.private = self.root_node.add_child(EasySubsection("easyconfig", hidden=True))
+        self.collapsed = self.private.add_child(EasyPrivateNode("collapsed", default=""))
+        self.hidden = self.private.add_child(EasyPrivateNode("hidden", default=None, save_if_none=False))
+        self.disabled = self.private.add_child(EasyPrivateNode("disabled", default=None, save_if_none=False))
 
     def root(self):
         return self.root_node
@@ -51,7 +51,7 @@ class EasyConfig2:
         # iterate over the children of the node
         for child in node.get_children():
             # if the child is a subsection, traverse it
-            if isinstance(child, Subsection):
+            if isinstance(child, EasySubsection):
                 if child.is_savable():
                     new_dict = {}
                     self.create_dictionary(child, new_dict)
@@ -112,7 +112,7 @@ class EasyConfig2:
 
         def parse_recursive(node, values):
             for child in node.get_children():
-                if isinstance(child, Subsection):
+                if isinstance(child, EasySubsection):
                     inner_dict = values.get(child.get_key(), {})
                     parse_recursive(child, inner_dict)
                     child.check_extended(inner_dict)
