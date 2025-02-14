@@ -42,7 +42,6 @@ class EasyConfig2:
 
         return new_dict
 
-
     def create_dictionary(self, node, values=None):
         # create a dictionary to store the values traversing the tree
 
@@ -127,7 +126,10 @@ class EasyConfig2:
         parse_recursive(self.root_node, dictionary)
 
     def add_dependencies(self, dependencies):
-        for master, slave, fun in dependencies:
-            if self.dependencies.get(master, None) is None:
-                self.dependencies[master] = []
-            self.dependencies[master].append((slave, fun))
+        for dep in dependencies:
+            self.add_dependency(dep)
+
+    def add_dependency(self, dep):
+        if self.dependencies.get(dep.master, None) is None:
+            self.dependencies[dep.master] = []
+        self.dependencies[dep.master].append(dep)

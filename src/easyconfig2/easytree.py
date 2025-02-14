@@ -133,11 +133,12 @@ class EasyTree(QTreeWidget):
     def check_dependency(self, node):
         # print("checking deps")
         deps = self.dependencies.get(node, [])
-        for slave, fun in deps:
-            if isinstance(fun, (int, float, str, bool)):
-                widget1, _ = self.items.get(node)
+        for dep in deps:
+            widget1, _ = self.items.get(dep.master)
+            for slave in dep.slave:
                 widget2, _ = self.items.get(slave)
-                widget2.set_enabled(widget1.get_value() != fun)
+                # print("Checking", dep.master.get_pretty(), dep.slave.get_pretty())
+                widget2.set_enabled(dep.kind(widget1.get_value()))  # , widget2.get_value()))
 
         for widget in self.items.keys2():
             if widget is not None and not widget.is_ok():

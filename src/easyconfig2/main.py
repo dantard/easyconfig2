@@ -4,6 +4,7 @@ from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
 
 from easyconfig2.easyconfig import EasyConfig2
+from easyconfig2.easydependency import EasyPairDependency, EasyDependency
 from easyconfig2.easynodes import EasyFileDialog, EasyPrivateNode, EasyList, EasyFileList, EasyEditBox, EasyPasswordEdit
 from easyconfig2.easynodes import (EasySubsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
 
@@ -35,7 +36,7 @@ class MainWindow(QWidget):
         tl5 = ss1.add_child(EasyPasswordEdit("cab1322", pretty="Password", default="Hello"))
         tl6 = ss1.get_child("cab13", EasyInputBox("csab13", default=16))
 
-        ss1.add_child(EasyInputBox("Name2", default=17))
+        aa = ss1.add_child(EasyInputBox("Name2", default=17))
         ss1.add_child(EasyInt("Name3", default=18))
         ss1.add_child(EasyCheckBox("Name4", default=True))
         ss1.add_child(EasyFileDialog("Name5", type="dir"))
@@ -43,7 +44,7 @@ class MainWindow(QWidget):
 
         ss1.add_child(EasySubsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
 
-        self.config.add_dependencies([(self.tl1, tl2, 12)])
+        self.config.add_dependency(EasyPairDependency(self.tl1, [tl2, aa], lambda x: x > 10))
         self.config.load("config.yaml")
 
         print("AAAAAAAAAAAAAA", tl5.get())

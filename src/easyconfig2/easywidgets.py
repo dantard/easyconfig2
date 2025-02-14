@@ -32,7 +32,7 @@ class EasyWidget(QWidget):
         self.widget_value_changed.emit(self)
 
     def set_enabled(self, enabled):
-        self.list_widget.setEnabled(self.enabled)
+        pass
 
 
 class EasyInputBoxWidget(EasyWidget):
@@ -135,17 +135,9 @@ class EasyPasswordEditWidget(EasyWidget):
             self.set_value("")
 
     def get_value(self):
-        value = self.widget.text()
-        if self.base64:
-            return value.encode("utf-8").hex()
-        return value
-
-    def get_plain_value(self):
-        return super().get_value()
+        return self.widget.text()
 
     def set_value(self, value):
-        if self.base64:
-            value = bytes.fromhex(value).decode("utf-8")
         self.widget.blockSignals(True)
         self.widget.setText(value if value is not None else "")
         self.widget.blockSignals(False)
