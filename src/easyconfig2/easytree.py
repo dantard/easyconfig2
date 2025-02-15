@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 
 from easyconfig2.easydependency import EasyPairDependency, EasyMandatoryDependency
@@ -150,15 +150,18 @@ class EasyTree(QTreeWidget):
         conf_is_ok = True
         deps = self.dependencies.get(node, [])
         for dep in deps:
-            widget1, _ = self.items.get(dep.master)
+            widget1, item1 = self.items.get(dep.master)
             if isinstance(dep, EasyPairDependency):
+                ok = dep.call(widget1.get_value())
                 for slave in dep.get_slave():
-                    widget2, _ = self.items.get(slave)
-                    # print("Checking", dep.master.get_pretty(), dep.slave.get_pretty())
-                    widget2.set_enabled(dep.call(widget1.get_value()))  # , widget2.get_value()))
+                    widget2, item2 = self.items.get(slave)
+                    widget2.set_enabled(ok)
             elif isinstance(dep, EasyMandatoryDependency):
                 if not dep.call(widget1.get_value()):
                     conf_is_ok = False
+                    item1.setForeground(0, Qt.red)
+                else:
+                    item1.setForeground(0, Qt.black)
 
         # for widget in self.items.keys2():
         #     if widget is not None and not widget.is_ok():

@@ -43,7 +43,7 @@ class EasySubsectionWidget(EasyWidget):
     def __init__(self, value, **kwargs):
         super().__init__(value, **kwargs)
         self.children = []
-        self.layout().addWidget(QPushButton("Subsection"))
+        # self.layout().addWidget(QPushButton("Subsection"))
 
     def add_child_widget(self, child):
         self.children.append(child)
