@@ -2,11 +2,12 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIntValidator
 
 from easyconfig2.easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
-    EasyFileDialogWidget, EasyListWidget, EasyFileListWidget, EasyEditBoxWidget, EasyPasswordEditWidget
+    EasyFileDialogWidget, EasyListWidget, EasyFileListWidget, EasyEditBoxWidget, EasyPasswordEditWidget, \
+    EasySubsectionWidget
 
 
 class EasyNode(QObject):
-    _node_value_changed = pyqtSignal(object)
+    node_value_changed = pyqtSignal(object)
     value_changed = pyqtSignal(object)
 
     def __init__(self, key, **kwargs):
@@ -18,6 +19,7 @@ class EasyNode(QObject):
         self.item = None
         self.value = kwargs.get("default", None)
         self.save = kwargs.get("save", True)
+        self.base64 = kwargs.get("base64", False)
         self.hidden = kwargs.get("hidden", False)
         self.editable = kwargs.get("editable", True)
         self.pretty = kwargs.get("pretty", key)
@@ -51,6 +53,9 @@ class EasyNode(QObject):
     def is_savable(self):
         return self.save
 
+    def is_base64(self):
+        return self.base64
+
     def get(self, default=None):
         return self.value if self.value is not None else default
 
@@ -59,7 +64,7 @@ class EasyNode(QObject):
 
     def set(self, value):
         self.value = value
-        self._node_value_changed.emit(self)
+        self.node_value_changed.emit(self)
         self.value_changed.emit(self)
 
     def use_inmediate_update(self):
@@ -76,7 +81,7 @@ class EasyNode(QObject):
         return self.key
 
     def get_arguments(self):
-        return ["pretty", "save", "hidden", "immediate", "default", "enabled", "save_if_none"]
+        return ["pretty", "save", "hidden", "immediate", "default", "enabled", "save_if_none", "base64"]
 
     def check_kwargs(self):
 
@@ -88,19 +93,6 @@ class EasyNode(QObject):
     def set_item_visible(self, visible):
         if self.item is not None:
             self.item.setHidden(not visible)
-
-    def check_extended(self, dictionary):
-        if (hidden := dictionary.get("$hidden", None)) is not None:
-            self.set_hidden(hidden)
-            self.extended = True
-
-        if (editable := dictionary.get("$editable", None)) is not None:
-            self.set_editable(editable)
-            self.extended = True
-
-        if (value := dictionary.get("$value", None)) is not None:
-            self.set(value)
-            self.extended = True
 
     def get_widget(self):
         return None
@@ -245,6 +237,9 @@ class EasySubsection(EasyNode):
 
         return None
 
+    def get_widget(self):
+        return EasySubsectionWidget(None, **self.kwargs)
+
     def get_arguments(self):
         return ["pretty", "save", "hidden", "editable", "immediate", "save_if_none"]
 
@@ -266,17 +261,6 @@ class EasySubsection(EasyNode):
             return None
 
         return get_node_recursive(self, path)
-
-    def check_extended(self, dictionary):
-        # print("check extended", dictionary)
-        if (hidden := dictionary.get("$hidden", None)) is not None:
-            # print("hidden", "***")
-            self.set_hidden(hidden)
-            self.extended = True
-
-        if (editable := dictionary.get("$editable", None)) is not None:
-            self.set_editable(editable)
-            self.extended = True
 
     # Utility function to add a subsection
     def addCombobox(self, key, **kwargs):

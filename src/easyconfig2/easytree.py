@@ -1,7 +1,9 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 
+from easyconfig2.easydependency import EasyPairDependency, EasyMandatoryDependency
 from easyconfig2.easynodes import EasySubsection
+from easyconfig2.easywidgets import EasySubsectionWidget
 from easyconfig2.tripledict import TripleDict
 
 
@@ -10,17 +12,20 @@ class EasyTree(QTreeWidget):
 
     def __init__(self, node, dependencies):
         super().__init__()
-        self.setColumnCount(2)
         self.node = node
         self.dependencies = dependencies
         self.items = TripleDict()
-        self.populate(node)
-        self.filter(node)
         self.header().setVisible(False)
         self.setSelectionMode(QAbstractItemView.NoSelection)
         self.expanded.connect(self.tree_expanded)
         self.collapsed.connect(self.tree_expanded)
         self.expanded.connect(lambda: self.resizeColumnToContents(0))
+        self.setColumnCount(2)
+
+        # Populate the tree
+        self.populate(node)
+        # Hide the hidden nodes
+        self.hide_hidden(node)
 
         proxy = self.model()
         for row in range(proxy.rowCount()):
@@ -36,7 +41,7 @@ class EasyTree(QTreeWidget):
         self.clear()
         self.items.clear()
         self.populate(self.node)
-        self.filter(self.node)
+        self.hide_hidden(self.node)
         self.set_collapsed_items(state)
 
     def collect_widget_values(self):
@@ -44,27 +49,16 @@ class EasyTree(QTreeWidget):
             if widget is not None:
                 node.update_value(widget.get_value())
 
-    def filter(self, node):
+    def hide_hidden(self, node):
         for child in node.get_children():
             if isinstance(child, EasySubsection):
                 # print(child.get_pretty(), child.is_hidden())
                 _, item = self.items[child]
                 item.setHidden(child.is_hidden())
-                self.filter(child)
+                self.hide_hidden(child)
             else:
                 _, item = self.items[child]
                 item.setHidden(child.is_hidden())
-
-    def create_item(self, node, parent):
-        item = QTreeWidgetItem(parent)
-        item.setText(0, node.get_pretty())
-        widget = node.get_widget()
-        if widget is not None:
-            widget.widget_value_changed.connect(self.widget_value_changed)
-            node._node_value_changed.connect(self.node_value_changed)
-            self.setItemWidget(item, 1, widget)
-        self.items.add(node, widget, item)
-        return item
 
     def widget_value_changed(self, widget):
         node, _ = self.items.get(widget)
@@ -77,22 +71,43 @@ class EasyTree(QTreeWidget):
         widget.set_value(node.get())
         self.check_dependency(node)
 
-    def populate(self, node, parent=None):
+    def _create_widget_item(self, node, parent_item: QTreeWidgetItem):
+        """Create the items of the tree and insert the widgets according to those
+        returned by the nodes themselves. Also, store in the EasySubsectionWidget
+        the children widgets, so they can be disabled when the parent is disabled.
+        NOTE: it also connects the signals of the widgets to the corresponding of
+        the nodes, so a node will be updated when the widget changes and vice versa.
+        This process is carried out by widget_value_changed and node_value_changed methods."""
 
-        if parent is not None:
-            parent = self.create_item(node, parent)
-            # node.widget_value_changed.connect(lambda x=node, y=node: self.check_dependency(y))
+        item = QTreeWidgetItem(parent_item)
+        item.setText(0, node.get_pretty())
+        widget = node.get_widget()
+        if widget is not None:
+            if parent_item is not None and self.itemWidget(parent_item, 1) is not None:
+                # Need to add the widget to the parent widget: it has to know
+                # them in case we need to disable them when a section is disabled
+                parent_widget: EasySubsectionWidget = self.itemWidget(parent_item, 1)
+                parent_widget.add_child_widget(widget)
+
+            widget.widget_value_changed.connect(self.widget_value_changed)
+            node.node_value_changed.connect(self.node_value_changed)
+            self.setItemWidget(item, 1, widget)
+        self.items.add(node, widget, item)
+        return item
+
+    def populate(self, node, parent_item=None):
+        """Populate the tree with the nodes of the configuration"""
+
+        if parent_item is not None:
+            parent_item = self._create_widget_item(node, parent_item)
         else:
-            parent = self.invisibleRootItem()
+            parent_item = self.invisibleRootItem()
 
-        for child in node.get_children():
-            if isinstance(child, EasySubsection):
-                # if not child.is_hidden():
-                self.populate(child, parent)
+        for child_node in node.get_children():
+            if isinstance(child_node, EasySubsection):
+                self.populate(child_node, parent_item)
             else:
-                # if not child.is_hidden():
-                self.create_item(child, parent)
-                # child.widget_value_changed.connect(lambda x=child, y=child: self.check_dependency(y))
+                self._create_widget_item(child_node, parent_item)
 
     def get_collapsed_items(self):
         info = []
@@ -132,17 +147,22 @@ class EasyTree(QTreeWidget):
 
     def check_dependency(self, node):
         # print("checking deps")
+        conf_is_ok = True
         deps = self.dependencies.get(node, [])
         for dep in deps:
             widget1, _ = self.items.get(dep.master)
-            for slave in dep.slave:
-                widget2, _ = self.items.get(slave)
-                # print("Checking", dep.master.get_pretty(), dep.slave.get_pretty())
-                widget2.set_enabled(dep.kind(widget1.get_value()))  # , widget2.get_value()))
+            if isinstance(dep, EasyPairDependency):
+                for slave in dep.get_slave():
+                    widget2, _ = self.items.get(slave)
+                    # print("Checking", dep.master.get_pretty(), dep.slave.get_pretty())
+                    widget2.set_enabled(dep.call(widget1.get_value()))  # , widget2.get_value()))
+            elif isinstance(dep, EasyMandatoryDependency):
+                if not dep.call(widget1.get_value()):
+                    conf_is_ok = False
 
-        for widget in self.items.keys2():
-            if widget is not None and not widget.is_ok():
-                self.config_ok.emit(False)
-                return
-
-        self.config_ok.emit(True)
+        # for widget in self.items.keys2():
+        #     if widget is not None and not widget.is_ok():
+        #         self.config_ok.emit(False)
+        #         return
+        self.config_ok.emit(conf_is_ok)
+        # self.config_ok.emit(True)

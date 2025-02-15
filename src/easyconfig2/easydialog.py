@@ -11,6 +11,7 @@ class EasyDialog(QDialog):
         self.v_layout = QVBoxLayout()
         self.setLayout(self.v_layout)
         self.v_layout.addWidget(tree)
+
         # add standard dialog buttonbox
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttonBox.accepted.connect(self.accept)

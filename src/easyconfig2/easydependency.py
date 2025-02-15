@@ -1,17 +1,23 @@
 class EasyDependency:
-    GREATER = 1
-    SMALLER = 2
-    NOT_EQUAL = 4
-    NOT_EMPTY = 8
-
-    def __init__(self, master, kind, value=None):
+    def __init__(self, master, func, **kwargs):
         self.master = master
-        self.kind = kind
-        self.value = value
+        self.func = func
+
+    def call(self, value):
+        if value == "" or value is None:
+            return False
+        return self.func(value)
+
+
+class EasyMandatoryDependency(EasyDependency):
+    pass
 
 
 class EasyPairDependency(EasyDependency):
 
-    def __init__(self, master, slave, kind, value=None):
-        super().__init__(master, kind, value)
+    def __init__(self, master, slave, func, **kwargs):
+        super().__init__(master, func, **kwargs)
         self.slave = [slave] if not isinstance(slave, (list, tuple, set)) else slave
+
+    def get_slave(self):
+        return self.slave

@@ -59,9 +59,17 @@ class EasyConfig2:
                 # if the child is a TextLine, store the value in the dictionary
                 if child.is_savable():
                     if child.get() is not None or child.is_savable_if_none():
-                        values[child.get_key()] = child.get()
+                        if child.is_base64() and child.get() is not None:
+                            # Encode in base64 if required
+                            # NOTE: we use yaml to dump the value to ensure that
+                            # the value is stored according to the type it has and
+                            # to take into account that it might be a list or a dict
+                            values[child.get_key()] = base64.b64encode(yaml.dump(child.get()).encode()).decode()
+                        else:
+                            values[child.get_key()] = child.get()
 
     def save(self, filename, encoded=False):
+        print("saving")
         values = self.get_dictionary()
         if encoded:
             # encode in base64
@@ -114,9 +122,12 @@ class EasyConfig2:
                 if isinstance(child, EasySubsection):
                     inner_dict = values.get(child.get_key(), {})
                     parse_recursive(child, inner_dict)
-                    child.check_extended(inner_dict)
                 else:
                     value = values.get(child.get_key())
+                    # Decode base64 if needed
+                    if child.is_base64() and value is not None:
+                        value = yaml.safe_load(base64.b64decode(value))
+
                     # TODO: Decision made here
                     if not emit:
                         child.value = value

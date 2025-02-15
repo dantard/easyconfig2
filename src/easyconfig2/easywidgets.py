@@ -1,7 +1,8 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QValidator, QIntValidator, QFontMetrics, QFont
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, \
-    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget, QMessageBox, QPlainTextEdit
+    QCheckBox, QComboBox, QSlider, QHBoxLayout, QLabel, QSizePolicy, QStyle, QFileDialog, QListWidget, QMessageBox, \
+    QPlainTextEdit
 
 from easyconfig2.easydialog import InputDialog
 from easyconfig2.easyutils import get_validator_type, get_validator_from_type
@@ -33,6 +34,23 @@ class EasyWidget(QWidget):
 
     def set_enabled(self, enabled):
         pass
+
+
+class EasySubsectionWidget(EasyWidget):
+    """This class is like a container for the children widgets
+        in case we need to disable all of them at once"""
+
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
+        self.children = []
+        self.layout().addWidget(QPushButton("Subsection"))
+
+    def add_child_widget(self, child):
+        self.children.append(child)
+
+    def set_enabled(self, enabled):
+        for child in self.children:
+            child.set_enabled(enabled)
 
 
 class EasyInputBoxWidget(EasyWidget):

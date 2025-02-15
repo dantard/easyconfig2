@@ -1,14 +1,10 @@
 import sys
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
 
 from easyconfig2.easyconfig import EasyConfig2
-from easyconfig2.easydependency import EasyPairDependency, EasyDependency
-from easyconfig2.easynodes import EasyFileDialog, EasyPrivateNode, EasyList, EasyFileList, EasyEditBox, EasyPasswordEdit
-from easyconfig2.easynodes import (EasySubsection, EasyInputBox, EasyInt, EasyCheckBox, EasySlider, EasyComboBox)
-
-# , EasyCheckBox, EasyComboBox, EasySlider)
+from easyconfig2.easydependency import EasyPairDependency, EasyMandatoryDependency
 
 app = QApplication(sys.argv)
 
@@ -22,32 +18,15 @@ class MainWindow(QWidget):
 
         self.config = EasyConfig2()
 
-        ss1 = self.config.add(EasySubsection("ss1", immediate=True, save_if_none=False))
-        ss2 = self.config.add(EasySubsection("ss2"))
-        ss1.add_child(EasyList("Name1333", default=[1, 2, 3], validator=QIntValidator(0, 100), height=100))
-        ss1.add_child(EasyFileList("Name13332", default=[1, 2, 3], height=100))
+        ss1 = self.config.root().addSubSection("ss1")
+        ss1_str_1 = ss1.addString("ss1_string", default="100", validator=QIntValidator())
+        ss2 = self.config.root().addSubSection("ss2")
+        ss2.addString("ss2_string_1", default="ss2_string_1", base64=True)
+        ss2.addString("ss2_string_2", default="ss2_string_2")
 
-        self.tl1 = ss1.add_child(EasyInputBox("Name1", validator=QDoubleValidator(0, 100, 2)))
-        tl2 = ss1.add_child(EasyInputBox("Name2", validator=QDoubleValidator(0, 100, 2)))
-        tl3 = ss1.add_child(EasyCheckBox("cab1", pretty="Checkbox"))
-        tl4 = ss1.add_child(EasyComboBox("cab12", pretty="Checkbox", items=["a", "b", "c"]))
-        tl5 = ss1.add_child(EasySlider("cab13", pretty="Slider", default=-200, show_value=True))
-        tl5 = ss1.add_child(EasyEditBox("cab132", pretty="EditBox", default="Hello"))
-        tl5 = ss1.add_child(EasyPasswordEdit("cab1322", pretty="Password", default="Hello"))
-        tl6 = ss1.get_child("cab13", EasyInputBox("csab13", default=16))
-
-        aa = ss1.add_child(EasyInputBox("Name2", default=17))
-        ss1.add_child(EasyInt("Name3", default=18))
-        ss1.add_child(EasyCheckBox("Name4", default=True))
-        ss1.add_child(EasyFileDialog("Name5", type="dir"))
-        ss1.add_child(EasyPrivateNode("Name6", default={"a": [1, 2, 3]}))
-
-        ss1.add_child(EasySubsection("ss3")).add_child(EasyInputBox("Name3", default="John3"))
-
-        self.config.add_dependency(EasyPairDependency(self.tl1, [tl2, aa], lambda x: x > 10))
+        self.config.add_dependency(EasyMandatoryDependency(ss1_str_1, lambda x: x > 10))
+        self.config.add_dependency(EasyPairDependency(ss1_str_1, ss2, lambda x: x > 10))
         self.config.load("config.yaml")
-
-        print("AAAAAAAAAAAAAA", tl5.get())
 
         btn = QPushButton("Save")
         btn.clicked.connect(lambda: self.config.save("config.yaml"))
@@ -62,6 +41,8 @@ class MainWindow(QWidget):
         self.layout().addWidget(btn_load)
         self.layout().addWidget(btn)
         self.layout().addWidget(btn_edit)
+
+        self.setMinimumWidth(200)
 
         # self.tree = EasyTree(self.config.root, self.config.dependencies)
         # self.v_layout.addWidget(self.tree)
