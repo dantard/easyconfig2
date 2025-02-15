@@ -136,29 +136,10 @@ class EasyEditBoxWidget(EasyWidget):
         self.widget.setEnabled(enabled)
 
 
-class EasyPasswordEditWidget(EasyWidget):
+class EasyPasswordEditWidget(EasyInputBoxWidget):
     def __init__(self, value, **kwargs):
         super().__init__(value, **kwargs)
-        self.widget = QLineEdit()
         self.widget.setEchoMode(QLineEdit.Password)
-        self.layout().addWidget(self.widget)
-        self.readonly = kwargs.get("readonly", False)
-        self.base64 = kwargs.get("base64", True)
-        if self.default is not None and self.default != "":
-            if self.base64:
-                self.set_value(self.default.encode("utf-8").hex())
-            else:
-                self.set_value(self.default)
-        else:
-            self.set_value("")
-
-    def get_value(self):
-        return self.widget.text()
-
-    def set_value(self, value):
-        self.widget.blockSignals(True)
-        self.widget.setText(value if value is not None else "")
-        self.widget.blockSignals(False)
 
 
 class EasyCheckBoxWidget(EasyWidget):

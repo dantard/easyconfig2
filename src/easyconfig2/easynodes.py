@@ -137,11 +137,15 @@ class EasyInt(EasyInputBox):
 
 class EasyPasswordEdit(EasyInputBox):
 
+    def __init__(self, key, **kwargs):
+        super().__init__(key, **kwargs)
+        self.base64 = True
+
     def get_widget(self):
         return EasyPasswordEditWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["readonly", "base64"]
+        return super().get_arguments() + ["readonly"]
 
 
 class EasyCheckBox(EasyNode):
