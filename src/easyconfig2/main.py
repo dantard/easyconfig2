@@ -22,7 +22,7 @@ class MainWindow(QWidget):
         ss1_str_1 = ss1.addString("ss1_string", default="100", validator=QIntValidator())
         ss2 = self.config.root().addSubSection("ss2")
         ss2.addString("ss2_string_1", default="ss2_string_1", base64=True)
-        ss2.addString("ss2_string_2", default="ss2_string_2")
+        self.aa = ss2.addString("ss2_string_2", default="ss2_string_2_dflt")
 
         self.config.add_dependency(EasyMandatoryDependency(ss1_str_1, lambda x: x > 10))
         self.config.add_dependency(EasyPairDependency(ss1_str_1, ss2, lambda x: x > 10))
@@ -48,7 +48,8 @@ class MainWindow(QWidget):
         # self.v_layout.addWidget(self.tree)
 
     def load(self):
-        pass
+        print("aa is", self.aa.get())
+
 
 
 a = MainWindow()
