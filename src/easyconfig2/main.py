@@ -1,4 +1,5 @@
 import sys
+from PyQt5.QtCore import Qt, QPointF, QSizeF, QTimer
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
@@ -16,7 +17,7 @@ class MainWindow(QWidget):
         self.v_layout = QVBoxLayout()
         self.setLayout(self.v_layout)
 
-        self.config = EasyConfig2()
+        self.config = EasyConfig2(name="hello", encoded=True)
 
         ss1 = self.config.root().addSubSection("ss1")
         ss1_str_1 = ss1.addString("ss1_string", default="100", validator=QIntValidator())
@@ -26,7 +27,6 @@ class MainWindow(QWidget):
 
         self.config.add_dependency(EasyMandatoryDependency(ss1_str_1, lambda x: x > 10))
         self.config.add_dependency(EasyPairDependency(ss1_str_1, ss2, lambda x: x > 10))
-        self.config.load("config.yaml")
 
         btn = QPushButton("Save")
         btn.clicked.connect(lambda: self.config.save("config.yaml"))
@@ -48,7 +48,9 @@ class MainWindow(QWidget):
         # self.v_layout.addWidget(self.tree)
 
     def load(self):
-        print("aa is", self.aa.get())
+        def do():
+            self.config.load("config.yaml")
+        QTimer.singleShot(2000, do)
 
 
 

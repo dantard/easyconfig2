@@ -12,6 +12,8 @@ from easyconfig2.easytree import EasyTree
 class EasyConfig2:
 
     def __init__(self, **kwargs):
+        self.section_name = kwargs.pop("name", None)
+        self.globally_encoded = kwargs.pop("encoded", False)
         self.easyconfig_private = {}
         self.tree = None
         self.dependencies = {}
@@ -71,34 +73,65 @@ class EasyConfig2:
                         else:
                             values[child.get_key()] = child.get()
 
-    def save(self, filename, encoded=False):
+    def save(self, filename):
         print("saving")
         values = self.get_dictionary()
-        if encoded:
-            # encode in base64
-            string = yaml.dump(values)
-            string = base64.b64encode(string.encode()).decode()
-            with open(filename, "w") as f:
-                f.write(string)
+        if self.section_name is None:
+            if self.globally_encoded:
+                # encode in base64
+                string = yaml.dump(values)
+                string = base64.b64encode(string.encode()).decode()
+                with open(filename, "w") as f:
+                    f.write(string)
+            else:
+                with open(filename, "w") as f:
+                    yaml.dump(values, f)
         else:
+            if os.path.exists(filename):
+                with open(filename, "r") as f:
+                    whole_file = yaml.safe_load(f)
+            else:
+                whole_file = {}
+
+            if self.globally_encoded:
+                # encode in base64
+                string = yaml.dump(values)
+                string = base64.b64encode(string.encode()).decode()
+                whole_file[self.section_name] = string
+            else:
+                whole_file[self.section_name] = values
             with open(filename, "w") as f:
-                yaml.dump(values, f)
+                yaml.dump(whole_file, f)
+
 
     def get_dictionary(self):
         values = {}
         self.create_dictionary(self.root_node, values)
         return values
 
-    def load(self, filename, emit=False, encoded=False):
+    def load(self, filename, emit=False):
         if os.path.exists(filename):
             with open(filename, "r") as f:
-                if encoded:
-                    string = f.read()
-                    string = base64.b64decode(string).decode()
-                    values = yaml.safe_load(string)
+                if self.section_name is None:
+                    if self.globally_encoded:
+                        string = f.read()
+                        string = base64.b64decode(string).decode()
+                        values = yaml.safe_load(string)
+                    else:
+                        values = yaml.safe_load(f)
                 else:
+                    # Otherwise, load the whole file
                     values = yaml.safe_load(f)
-
+                    if self.globally_encoded:
+                        # If my section is encoded, we get the value associated to the section name
+                        # which will be a string, so we decode it and obtain the yaml which is safe loaded
+                        string = values.get(self.section_name, {})
+                        string = base64.b64decode(string).decode()
+                        values = yaml.safe_load(string)
+                    else:
+                        # Otherwise, we get the values associated to the section name
+                        values = values.get(self.section_name, {})
+                    
                 self.parse(values, emit)
                 # print("Loaded values", filename, values)
                 for key in self.hidden.get([]):
@@ -133,7 +166,8 @@ class EasyConfig2:
                         value = yaml.safe_load(base64.b64decode(value))
 
                     # TODO: Decision made here
-                    if not emit:
+                    # In this way the widgets, if visible, are not updated
+                    if not emit and False:
                         child.value = value
                     else:
                         child.set(value)
