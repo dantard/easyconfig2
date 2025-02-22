@@ -126,7 +126,7 @@ class EasyConfig2:
                     inner_dict = values.get(child.get_key(), {})
                     parse_recursive(child, inner_dict)
                 else:
-                    value = values.get(child.get_key())
+                    value = values.get(child.get_key(), child.value)
                     # Decode base64 if needed
                     if child.is_base64() and value is not None:
                         value = value.replace(" ", "")
