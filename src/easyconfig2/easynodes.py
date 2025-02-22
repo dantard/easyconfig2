@@ -138,8 +138,8 @@ class EasyInt(EasyInputBox):
 class EasyPasswordEdit(EasyInputBox):
 
     def __init__(self, key, **kwargs):
-        super().__init__(key, **kwargs)
         self.base64 = True
+        super().__init__(key, **kwargs)
 
     def get_widget(self):
         return EasyPasswordEditWidget(self.value, **self.kwargs)

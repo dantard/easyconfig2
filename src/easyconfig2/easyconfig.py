@@ -1,5 +1,6 @@
 import base64
 import os
+import textwrap
 
 import yaml
 
@@ -63,8 +64,10 @@ class EasyConfig2:
                             # Encode in base64 if required
                             # NOTE: we use yaml to dump the value to ensure that
                             # the value is stored according to the type it has and
-                            # to take into account that it might be a list or a dict
-                            values[child.get_key()] = base64.b64encode(yaml.dump(child.get()).encode()).decode()
+                            # to take into account that might be a list or a dict
+                            encoded = base64.b64encode(yaml.dump(child.get()).encode()).decode()
+                            encoded = " ".join(textwrap.wrap(encoded, 80))
+                            values[child.get_key()] = encoded
                         else:
                             values[child.get_key()] = child.get()
 
@@ -126,6 +129,7 @@ class EasyConfig2:
                     value = values.get(child.get_key())
                     # Decode base64 if needed
                     if child.is_base64() and value is not None:
+                        value = value.replace(" ", "")
                         value = yaml.safe_load(base64.b64decode(value))
 
                     # TODO: Decision made here
