@@ -32,6 +32,7 @@ class EasyTree(QTreeWidget):
             index = proxy.index(row, 0)
             self.expand(index)
         self.resizeColumnToContents(0)
+        self.check_all_dependencies()
 
     def tree_expanded(self):
         self.node.get_node("easyconfig/collapsed").set(self.get_collapsed_items())
@@ -64,12 +65,12 @@ class EasyTree(QTreeWidget):
         node, _ = self.items.get(widget)
         if node.use_inmediate_update():
             node.update_value(widget.get_value())
-        self.check_dependency(node)
+        self.check_all_dependencies()
 
     def node_value_changed(self, node):
         widget, _ = self.items.get(node)
         widget.set_value(node.get())
-        self.check_dependency(node)
+        self.check_all_dependencies()
 
     def _create_widget_item(self, node, parent_item: QTreeWidgetItem):
         """Create the items of the tree and insert the widgets according to those
@@ -142,13 +143,14 @@ class EasyTree(QTreeWidget):
         traverse(self.invisibleRootItem(), info)
 
     def check_all_dependencies(self):
-        for node in self.dependencies.keys():
-            self.check_dependency(node)
+        is_ok = True
+        for node, deps in self.dependencies.items():
+            is_ok = is_ok and self.check_node_dependencies(deps)
+        self.config_ok.emit(is_ok)
 
-    def check_dependency(self, node):
+    def check_node_dependencies(self, deps):
         # print("checking deps")
         conf_is_ok = True
-        deps = self.dependencies.get(node, [])
         for dep in deps:
             widget1, item1 = self.items.get(dep.master)
             if isinstance(dep, EasyPairDependency):
@@ -162,10 +164,4 @@ class EasyTree(QTreeWidget):
                     item1.setForeground(0, Qt.red)
                 else:
                     item1.setForeground(0, Qt.black)
-
-        # for widget in self.items.keys2():
-        #     if widget is not None and not widget.is_ok():
-        #         self.config_ok.emit(False)
-        #         return
-        self.config_ok.emit(conf_is_ok)
-        # self.config_ok.emit(True)
+        return conf_is_ok

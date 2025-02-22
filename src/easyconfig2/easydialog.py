@@ -18,6 +18,8 @@ class EasyDialog(QDialog):
         self.buttonBox.rejected.connect(self.reject)
         self.v_layout.addWidget(self.buttonBox)
 
+        self.tree.check_all_dependencies()
+
     def config_ok(self, state):
         self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(state)
 
