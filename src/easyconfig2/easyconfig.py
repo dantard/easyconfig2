@@ -5,7 +5,7 @@ import textwrap
 import yaml
 
 from easyconfig2.easydialog import EasyDialog
-from easyconfig2.easynodes import Root, EasySubsection, EasyPrivateNode
+from easyconfig2.easynodes import Root, EasySubsection, EasyPrivateNode, EasyNode
 from easyconfig2.easytree import EasyTree
 
 
@@ -14,6 +14,7 @@ class EasyConfig2:
     def __init__(self, **kwargs):
         self.section_name = kwargs.pop("name", None)
         self.globally_encoded = kwargs.pop("encoded", False)
+        self.filename = kwargs.pop("filename", None)
         self.easyconfig_private = {}
         self.tree = None
         self.dependencies = {}
@@ -22,6 +23,8 @@ class EasyConfig2:
         self.collapsed = self.private.add_child(EasyPrivateNode("collapsed", default=""))
         self.hidden = self.private.add_child(EasyPrivateNode("hidden", default=None, save_if_none=False))
         self.disabled = self.private.add_child(EasyPrivateNode("disabled", default=None, save_if_none=False))
+        self.whole_file = None
+        self.section_part_of_file = None
 
     def root(self):
         return self.root_node
@@ -73,69 +76,84 @@ class EasyConfig2:
                         else:
                             values[child.get_key()] = child.get()
 
-    def save(self, filename):
-        print("saving")
-        values = self.get_dictionary()
-        if self.section_name is None:
-            if self.globally_encoded:
-                # encode in base64
-                string = yaml.dump(values)
-                string = base64.b64encode(string.encode()).decode()
-                with open(filename, "w") as f:
-                    f.write(string)
-            else:
-                with open(filename, "w") as f:
-                    yaml.dump(values, f)
-        else:
-            if os.path.exists(filename):
-                with open(filename, "r") as f:
-                    whole_file = yaml.safe_load(f)
-            else:
-                whole_file = {}
-
-            if self.globally_encoded:
-                # encode in base64
-                string = yaml.dump(values)
-                string = base64.b64encode(string.encode()).decode()
-                whole_file[self.section_name] = string
-            else:
-                whole_file[self.section_name] = values
-            with open(filename, "w") as f:
-                yaml.dump(whole_file, f)
-
-
     def get_dictionary(self):
         values = {}
         self.create_dictionary(self.root_node, values)
         return values
 
-    def load(self, filename, emit=False):
-        if os.path.exists(filename):
-            with open(filename, "r") as f:
-                if self.section_name is None:
-                    if self.globally_encoded:
-                        string = f.read()
-                        string = base64.b64decode(string).decode()
-                        values = yaml.safe_load(string)
-                    else:
-                        values = yaml.safe_load(f)
-                else:
-                    # Otherwise, load the whole file
-                    values = yaml.safe_load(f)
-                    if self.globally_encoded:
-                        # If my section is encoded, we get the value associated to the section name
-                        # which will be a string, so we decode it and obtain the yaml which is safe loaded
-                        string = values.get(self.section_name, {})
-                        string = base64.b64decode(string).decode()
-                        values = yaml.safe_load(string)
-                    else:
-                        # Otherwise, we get the values associated to the section name
-                        values = values.get(self.section_name, {})
-                    
-                self.parse(values, emit)
-                # print("Loaded values", filename, values)
-                for key in self.hidden.get([]):
-                    self.root_node.get_node(key).set_hidden(True)
+    def load(self, filename=None, emit=False):
+        filename = filename or self.filename
+        if not os.path.exists(filename):
+            self.whole_file = {}
+            self.section_part_of_file = {}
+            return
+
+        with open(filename, "r") as f:
+            string = f.read()
+            if self.section_name is None and not self.globally_encoded:
+                values = yaml.safe_load(string)
+                self.whole_file = self.section_part_of_file = values
+
+            elif self.section_name is None and self.globally_encoded:
+                string = base64.b64decode(string).decode()
+                values = yaml.safe_load(string)
+                self.whole_file = self.section_part_of_file = values
+            elif not self.globally_encoded:
+                # The section name is NOT None
+                # and globally encoded is either False
+                data = yaml.safe_load(string)
+                values = data.get(self.section_name, {})
+                self.whole_file = data
+                self.section_part_of_file = values
+            else:
+                # Section name is NOT None and globally encoded is True
+                data = yaml.safe_load(string)
+                string = data.get(self.section_name, {})
+                string = base64.b64decode(string).decode()
+                values = yaml.safe_load(string)
+                self.whole_file = data
+                self.section_part_of_file = values
+                print("Loaded values", filename, values)
+
+            self.parse_dictionary_into_node(values, self.root_node, emit)
+            # print("Loaded values", filename, values)
+            for key in self.hidden.get([]):
+                self.root_node.get_node(key).set_hidden(True)
+
+    def populate(self, node: EasyNode):
+        if not isinstance(node, EasySubsection):
+            raise ValueError("Node must be a subsection")
+        if node not in self.root_node.get_children():
+            print(self.root_node.get_children())
+            raise ValueError("Node is not a child of the root node")
+
+        dictionary = self.section_part_of_file.get(node.get_key(), None)
+
+        if dictionary is not None:
+            self.parse_dictionary_into_node(dictionary, node)
+
+    def save(self, filename=None):
+        filename = filename or self.filename
+        if filename is None:
+            raise ValueError("Filename not provided")
+
+        values = self.get_dictionary()
+        if self.section_name is None and not self.globally_encoded:
+            self.whole_file = values
+            with open(filename, "w") as f:
+                yaml.dump(values, f)
+        elif self.section_name is None and self.globally_encoded:
+            self.whole_file = values
+            with open(filename, "w") as f:
+                f.write(base64.b64encode(yaml.dump(values).encode()).decode())
+        elif not self.globally_encoded:
+            self.whole_file[self.section_name] = values
+            with open(filename, "w") as f:
+                yaml.dump(self.whole_file, f)
+        else:
+            self.whole_file[self.section_name] = base64.b64encode(yaml.dump(values).encode()).decode()
+            with open(filename, "w") as f:
+                yaml.dump(self.whole_file, f)
 
     def edit(self, min_width=None, min_height=None):
         dialog = EasyDialog(EasyTree(self.root_node, self.dependencies))
@@ -151,7 +169,7 @@ class EasyConfig2:
             return True
         return False
 
-    def parse(self, dictionary, emit=False):
+    def parse_dictionary_into_node(self, dictionary, root_node, emit=False):
 
         def parse_recursive(node, values):
             for child in node.get_children():
@@ -172,7 +190,7 @@ class EasyConfig2:
                     else:
                         child.set(value)
 
-        parse_recursive(self.root_node, dictionary)
+        parse_recursive(root_node, dictionary)
 
     def add_dependencies(self, dependencies):
         for dep in dependencies:
