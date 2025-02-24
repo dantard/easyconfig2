@@ -24,7 +24,7 @@ class EasyConfig2:
         self.hidden = self.private.add_child(EasyPrivateNode("hidden", default=None, save_if_none=False))
         self.disabled = self.private.add_child(EasyPrivateNode("disabled", default=None, save_if_none=False))
         self.whole_file = None
-        self.section_part_of_file = None
+        self.loaded_values = {}
 
     def root(self):
         return self.root_node
@@ -84,39 +84,36 @@ class EasyConfig2:
     def load(self, filename=None, emit=False):
         filename = filename or self.filename
         if not os.path.exists(filename):
-            self.whole_file = {}
-            self.section_part_of_file = {}
             return
 
         with open(filename, "r") as f:
             string = f.read()
             if self.section_name is None and not self.globally_encoded:
-                values = yaml.safe_load(string)
-                self.whole_file = self.section_part_of_file = values
+                self.loaded_values = yaml.safe_load(string)
 
             elif self.section_name is None and self.globally_encoded:
                 string = base64.b64decode(string).decode()
-                values = yaml.safe_load(string)
-                self.whole_file = self.section_part_of_file = values
+                self.loaded_values = yaml.safe_load(string)
+
             elif not self.globally_encoded:
+
                 # The section name is NOT None
-                # and globally encoded is either False
+                # and globally encoded is False
                 data = yaml.safe_load(string)
-                values = data.get(self.section_name, {})
-                self.whole_file = data
-                self.section_part_of_file = values
+                self.loaded_values = data.get(self.section_name, {})
             else:
+
                 # Section name is NOT None and globally encoded is True
                 data = yaml.safe_load(string)
-                string = data.get(self.section_name, {})
-                string = base64.b64decode(string).decode()
-                values = yaml.safe_load(string)
-                self.whole_file = data
-                self.section_part_of_file = values
-                print("Loaded values", filename, values)
+                string = data.get(self.section_name, None)
+                if string is not None:
+                    string = base64.b64decode(string).decode()
+                    self.loaded_values = yaml.safe_load(string)
+                else:
+                    self.loaded_values = {}
 
-            self.parse_dictionary_into_node(values, self.root_node, emit)
-            # print("Loaded values", filename, values)
+            self.parse_dictionary_into_node(self.loaded_values, self.root_node, emit)
+
             for key in self.hidden.get([]):
                 self.root_node.get_node(key).set_hidden(True)
 
@@ -127,7 +124,7 @@ class EasyConfig2:
             print(self.root_node.get_children())
             raise ValueError("Node is not a child of the root node")
 
-        dictionary = self.section_part_of_file.get(node.get_key(), None)
+        dictionary = self.loaded_values.get(node.get_key(), None)
 
         if dictionary is not None:
             self.parse_dictionary_into_node(dictionary, node)
@@ -136,27 +133,37 @@ class EasyConfig2:
         filename = filename or self.filename
         if filename is None:
             raise ValueError("Filename not provided")
-
         values = self.get_dictionary()
-        if self.section_name is None and not self.globally_encoded:
-            self.whole_file = values
-            with open(filename, "w") as f:
-                yaml.dump(values, f)
-        elif self.section_name is None and self.globally_encoded:
-            self.whole_file = values
-            with open(filename, "w") as f:
-                f.write(base64.b64encode(yaml.dump(values).encode()).decode())
-        elif not self.globally_encoded:
-            self.whole_file[self.section_name] = values
-            with open(filename, "w") as f:
-                yaml.dump(self.whole_file, f)
-        else:
-            self.whole_file[self.section_name] = base64.b64encode(yaml.dump(values).encode()).decode()
-            with open(filename, "w") as f:
-                yaml.dump(self.whole_file, f)
 
-    def edit(self, min_width=None, min_height=None):
-        dialog = EasyDialog(EasyTree(self.root_node, self.dependencies))
+        if self.section_name is None:
+            # Apply the new values to the loaded values
+            # and save them to the *exclusive* file (section_name is None)
+            self.loaded_values.update(values)
+            if not self.globally_encoded:
+                string = yaml.dump(self.loaded_values)
+            else:
+                string = base64.b64encode(yaml.dump(self.loaded_values).encode()).decode()
+
+            with open(filename, "w") as f:
+                f.write(string)
+        else:
+            # Section name is NOT None
+            data = {}
+            if os.path.exists(filename):
+                # We reload the file to get updated values
+                with open(filename, "r") as f:
+                    data = yaml.safe_load(f)
+
+            if not self.globally_encoded:
+                data[self.section_name] = values
+            else:
+                data[self.section_name] = base64.b64encode(yaml.dump(values).encode()).decode()
+
+            with open(filename, "w") as f:
+                yaml.dump(data, f)
+
+    def edit(self, min_width=None, min_height=None, parent=None):
+        dialog = EasyDialog(EasyTree(self.root_node, self.dependencies), parent=parent)
         if min_width is not None:
             dialog.setMinimumWidth(min_width)
         if min_height is not None:
@@ -180,6 +187,7 @@ class EasyConfig2:
                     value = values.get(child.get_key(), child.value)
                     # Decode base64 if needed
                     if child.is_base64() and value is not None:
+                        print("value", value)
                         value = value.replace(" ", "")
                         value = yaml.safe_load(base64.b64decode(value))
 

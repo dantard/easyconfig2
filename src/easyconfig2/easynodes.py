@@ -1,3 +1,5 @@
+import base64
+
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIntValidator
 
@@ -17,9 +19,12 @@ class EasyNode(QObject):
         self.key = key
         self.widget = None
         self.item = None
-        self.value = kwargs.get("default", None)
-        self.save = kwargs.get("save", True)
         self.base64 = kwargs.get("base64", False)
+        self.value = kwargs.get("default", None)
+        # TODO: value can be a list :
+        #  if self.base64:
+        #    self.value = base64.b64encode(self.value.encode()).decode() if self.value is not None else None
+        self.save = kwargs.get("save", True)
         self.hidden = kwargs.get("hidden", False)
         self.editable = kwargs.get("editable", True)
         self.pretty = kwargs.get("pretty", key)
