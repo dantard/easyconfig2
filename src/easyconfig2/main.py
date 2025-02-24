@@ -23,8 +23,9 @@ class MainWindow(QWidget):
 
         ss2 = self.config.root().addSubSection("ss2")
         ss2.addString("ss2_string_1", default="ss2_string_1")  # , base64=True)
-        self.aa = ss2.addString("ss2_string_2", default="ss2_string_2")
+        self.aa = ss2.addString("ss1_string_1", default="ss2_string_2")
 
+        print("hello", self.config.ss2_string_1.get())
         # self.config.add_dependency(EasyMandatoryDependency(ss1_str_1, lambda x: x > 10))
         # self.config.add_dependency(EasyPairDependency(ss1_str_1, ss2, lambda x: x > 10))
 

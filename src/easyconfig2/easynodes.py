@@ -228,9 +228,21 @@ class EasySubsection(EasyNode):
     def __init__(self, key, **kwargs):
         super().__init__(key, **kwargs)
         self.node_children = []
+        self.easyconfig = None
+
+    def set_easyconfig(self, easyconfig):
+        self.easyconfig = easyconfig
 
     def add_child(self, child):
         child.update_kwargs(self.kwargs)
+        if isinstance(child, EasySubsection):
+            child.set_easyconfig(self.easyconfig)
+        else:
+            if hasattr(self.easyconfig, child.get_key()):
+                print("WARNING: clash for key", child.get_key(), ":", getattr(self.easyconfig, child.get_key()), "owns it")
+            else:
+                setattr(self.easyconfig, child.get_key(), child)
+
         self.node_children.append(child)
         return child
 
@@ -390,5 +402,6 @@ class EasySubsection(EasyNode):
 
 
 class Root(EasySubsection):
-    def __init__(self, **kwargs):
+    def __init__(self, easyconfig, **kwargs):
         super().__init__("root", **kwargs)
+        self.easyconfig = easyconfig

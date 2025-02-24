@@ -3,22 +3,25 @@ import os
 import textwrap
 
 import yaml
+from PyQt5.QtCore import QObject, pyqtSignal
 
 from easyconfig2.easydialog import EasyDialog
 from easyconfig2.easynodes import Root, EasySubsection, EasyPrivateNode, EasyNode
 from easyconfig2.easytree import EasyTree
 
 
-class EasyConfig2:
+class EasyConfig2(QObject):
+    edited = pyqtSignal()
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.section_name = kwargs.pop("name", None)
         self.globally_encoded = kwargs.pop("encoded", False)
         self.filename = kwargs.pop("filename", None)
         self.easyconfig_private = {}
         self.tree = None
         self.dependencies = {}
-        self.root_node = Root(**kwargs)
+        self.root_node = Root(self, **kwargs)
         self.private = self.root_node.add_child(EasySubsection("easyconfig", hidden=True))
         self.collapsed = self.private.add_child(EasyPrivateNode("collapsed", default=""))
         self.hidden = self.private.add_child(EasyPrivateNode("hidden", default=None, save_if_none=False))
@@ -173,6 +176,7 @@ class EasyConfig2:
         if dialog.exec():
             dialog.collect_widget_values()
             self.collapsed.set(dialog.get_collapsed())
+            self.edited.emit()
             return True
         return False
 
