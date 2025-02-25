@@ -120,6 +120,9 @@ class EasyConfig2(QObject):
             for key in self.hidden.get([]):
                 self.root_node.get_node(key).set_hidden(True)
 
+    def parse(self, dictionary):
+        self.parse_dictionary_into_node(dictionary, self.root_node)
+
     def populate(self, node: EasyNode):
         if not isinstance(node, EasySubsection):
             raise ValueError("Node must be a subsection")

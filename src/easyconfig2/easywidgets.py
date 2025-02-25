@@ -62,6 +62,9 @@ class EasyInputBoxWidget(EasyWidget):
         self.layout().addWidget(self.widget)
         self.validator = kwargs.get("validator", None)
         self.readonly = kwargs.get("readonly", False)
+        self.my_font = kwargs.get("font", None)
+        if self.my_font is not None:
+            self.widget.setFont(self.my_font)
 
         if isinstance(self.validator, int):
             self.validator = QIntValidator()
@@ -116,6 +119,9 @@ class EasyEditBoxWidget(EasyWidget):
         self.layout().addWidget(self.widget)
         self.readonly = kwargs.get("readonly", False)
         self.max_height = kwargs.get("max_height", 100)
+        self.my_font = kwargs.get("font", None)
+        if self.my_font is not None:
+            self.widget.setFont(self.my_font)
 
         self.widget.setReadOnly(self.readonly)
         self.widget.textChanged.connect(self.value_changed)

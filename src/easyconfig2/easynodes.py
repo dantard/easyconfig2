@@ -116,7 +116,7 @@ class EasyInputBox(EasyNode):
         return EasyInputBoxWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["validator", "readonly"]
+        return super().get_arguments() + ["validator", "readonly", "font"]
 
 
 class EasyEditBox(EasyNode):
@@ -125,7 +125,7 @@ class EasyEditBox(EasyNode):
         return EasyEditBoxWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["readonly", "max_height"]
+        return super().get_arguments() + ["readonly", "max_height", "font"]
 
 
 class EasyInt(EasyInputBox):
