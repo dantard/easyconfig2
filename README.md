@@ -2,19 +2,19 @@
 
 Easyconfig is a library for creating settings dialogs based in the pyQt 
 Library. It eases the process of creating and managing configuration dialogs.
-With EasyConfig, developers can quickly generate dialogs that allow users
+With `EasyConfig`, developers can quickly generate dialogs that allow users
 to modify application settings, making it an efficient tool for enhancing 
 user experience in pyQt applications. 
 
 The API is simple and intuitive,
 allowing developers to focus on the functionality of their applications 
-rather than the intricacies of dialog creation. By leveraging EasyConfig, 
+rather than the intricacies of dialog creation. By leveraging `EasyConfig`, 
 developers can streamline their workflow and enhance the overall user 
 experience in pyQt applications.
 
 ### Philosophy
 
-To use the library, it is necessary to create an EasyConfig2 object and 
+To use the library, it is necessary to create an `EasyConfig2` object and 
 add the needed configuration options.
 
 A basic settings dialogs can be created with the following code:
@@ -38,7 +38,7 @@ In the previous example we create a dialog with two options, one for the name an
 another for the age of an individual. The name is a string with the default value "John Doe"
 and the age is an integer with the default value 30.
 
-Calling the `edit` method of the EasyConfig2 object within a pyQt application
+Calling the `edit` method of the `EasyConfig2` object within a pyQt application
 will show the dialog to the user.
 
 Let's see a complete example:
@@ -69,7 +69,7 @@ name_value = name.get()
 age_value = age.get()
 ``` 
 
-Additionally, values can be set using the `set` method of the EasyNode object:
+Additionally, values can be set using the `set` method of the `EasyNode` object:
 
 ```python
 name.set("Jane Doe")
@@ -80,7 +80,7 @@ The changed will be also reflected in the dialog if it is still open.
 
 ### Save data
 
-The data can be saved to a yaml file using the `save` method of the EasyConfig2 object:
+The data can be saved to a yaml file using the `save` method of the `EasyConfig2` object:
 
 ```python
 config.save("config.yaml")
@@ -116,7 +116,7 @@ sys.exit(app.exec_())
 Notice that the `load()` method **must** be called after the options have been added to the dialog
 because the `EasyConfig2` object will read only the values that have been previously added.
 
-This example will generate the following yaml file:
+This example will generate the following `yaml` file:
 
 ```yaml
 name: Jane Doe
@@ -127,7 +127,7 @@ The values will be read back from the file and shown in the dialog. If the user
 presses the OK button the values will be saved back to the file.
 
 ### Use of subsections
-It is possible to create subsections in the dialog by creating a new EasyNode object
+It is possible to create subsections in the dialog by creating a new `EasyNode` object
 and adding it to the root node. The subsections can have its own options and can be
 expanded or collapsed by the user.
 
@@ -153,6 +153,16 @@ address:
   city: New York
   state: NY
 ```
+
+Notice that all the parameters specified for a subsection are inherited by the options below it.
+For example, if the `hidden` parameter is set to `True` in the subsection, all the options below it will be hidden.
+```python
+private_section = config.root().addSubsection("private_data", hidden=True)
+ssn = private_section.addString("ssn", pretty="SSN", default="123-45-6789")
+```
+
+In this case, the private_data section will be hidden in the dialog but the values will be saved in the yaml file
+and can be accessed by the application in the same way as the other options.
 
 ### Available EasyNode objects
 The addString, `addInt`, `addFloat`, etc. methods are wrapper for a more general
@@ -229,3 +239,25 @@ has a parameter that is the object that emitted the signal.
 Notice that if the signals are connected **before** the configuration is loaded the signals will be emitted 
 when the configuration is loaded.
 
+### Dependencies
+It is possible to configure dependencies between nodes. For example, it is possible to enable or disable a node or section
+depending on the value of another node or enable and disable the OK button. The `EasyNode2` object has a method called `add_dependency` that can be used
+to add a dependency between nodes. There are two types of dependencies: EasyMandatoryDependency and EasyPairDependency.
+
+The EasyMandatoryDependency is used to enable or disable the OK button if the dependency is not satisfied. 
+The EasyPairDependency is used to enable or disable a node or section depending on the value of another node.
+For example, the following code will disable the address section if the age is less or equal to 18:
+
+```python
+config.add_dependency(EasyPairDependency(age, section, lambda x: x > 18))
+```
+The EasyPairDependency has three parameters: the node that will be used to check the dependency, the node that will be enabled or disabled
+and a function that will be used to check the dependency. The function must have a parameter that is the value of the node that will be used to check the dependency.
+
+The following code will disable the OK button if the name is empty:
+
+```python
+config.add_dependency(EasyMandatoryDependency(name, lambda x: x != ""))
+```
+
+The EasyMandatoryDependency has two parameters: the node that will be used to check the dependency and a function that will be used to check the dependency. The lambda function has a parameter that is the value of the node that will be used to check the dependency.
