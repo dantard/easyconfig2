@@ -57,7 +57,7 @@ age = config.root().addInt("age", pretty="Age", default=30)
 config.edit()
 ```
 
-![img.png](img.png)
+![img.png](images/img.png)
 
 The dialog will show the two options and the user can change the values
 and press the OK button to close the dialog. The values will be stored in the
@@ -142,7 +142,7 @@ state = section.addString("state", pretty="State", default="NY")
 ```
 This will show a dialog with a section called "Address" that can be expanded or collapsed:
 
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
 The corresponding yaml file will be:
 
