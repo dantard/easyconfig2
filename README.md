@@ -13,7 +13,7 @@ pip install easyconfig2
 If you want to install the latest version from the repository, use:
 
 ```bash
-git clone http://
+git clone https://github.com/dantard/easyconfig2.git
 cd easyconfig2
 pip install .
 ```
