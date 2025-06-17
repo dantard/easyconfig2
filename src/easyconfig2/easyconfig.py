@@ -83,7 +83,7 @@ class EasyConfig2(QObject):
         values = {}
         self.create_dictionary(self.root_node, values)
         return values
-
+  
     def load(self, filename=None, emit=False):
         filename = filename or self.filename
         if not os.path.exists(filename):

@@ -2,6 +2,7 @@ import base64
 
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIntValidator
+from sympy.printing.cxx import reserved
 
 from easyconfig2.easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
     EasyFileDialogWidget, EasyListWidget, EasyFileListWidget, EasyEditBoxWidget, EasyPasswordEditWidget, \
@@ -30,9 +31,13 @@ class EasyNode(QObject):
         self.pretty = kwargs.get("pretty", key)
         self.immediate_update = kwargs.get("immediate", False)
         self.save_if_none = kwargs.get("save_if_none", True)
+        self.father = None
 
         if not self.check_kwargs():
             raise ValueError("Invalid keyword argument")
+
+    def set_father(self, father):
+        self.father = father
 
     # Push the kwargs down to the children
     # E.g. if a subsection is hidden, all children
@@ -233,15 +238,51 @@ class EasySubsection(EasyNode):
     def set_easyconfig(self, easyconfig):
         self.easyconfig = easyconfig
 
+    def set_nested_attr(self, obj, attrs, value):
+
+        class Dummy:
+            pass
+
+        for attr in attrs[:-1]:
+            if not hasattr(obj, attr):
+                setattr(obj, attr, Dummy())
+            obj = getattr(obj, attr)
+        setattr(obj, attrs[-1], value)
+
     def add_child(self, child):
+
         child.update_kwargs(self.kwargs)
+        child.set_father(self)
+
         if isinstance(child, EasySubsection):
             child.set_easyconfig(self.easyconfig)
         else:
-            if hasattr(self.easyconfig, child.get_key()):
-                print("WARNING: clash for key", child.get_key(), ":", getattr(self.easyconfig, child.get_key()), "owns it")
-            else:
-                setattr(self.easyconfig, child.get_key(), child)
+
+            # Create fields to be accessed like self.config.ss1.ss1_string_1
+            fields = [child.get_key()]
+            p = child.father
+            while p is not None:
+                fields.append(p.get_key())
+                p = p.father
+            fields.reverse()
+
+            self.set_nested_attr(self.easyconfig, fields[1:], child)
+
+            # field_key = ""
+            # for f in fields:
+            #     if not hasattr(self.easyconfig, f):
+            #         setattr(self.easyconfig, f, None)
+            #
+            # for i, f in enumerate(fields[1:]):
+            #     field_key += ("_" if i != 0 else "") + f
+            # setattr(self.easyconfig, field_key, child)
+            # print(field_key, "set to", child)
+
+            # if hasattr(self.easyconfig, child.get_key()):
+            #     print("WARNING: clash for key", child.get_key(), ":", getattr(self.easyconfig, child.get_key()),
+            #           "owns it")
+            # else:
+            #     setattr(self.easyconfig, child.get_key(), child)
 
         self.node_children.append(child)
         return child
