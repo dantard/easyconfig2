@@ -138,38 +138,25 @@ class EasyConfig2(QObject):
         if dictionary is not None:
             self.parse_dictionary_into_node(dictionary, node)
 
+    def save_to_string(self, filename=None):
+
+        values = self.get_dictionary()
+
+        self.loaded_values.update(values)
+        if not self.globally_encoded:
+            string = yaml.dump(self.loaded_values)
+        else:
+            string = base64.b64encode(yaml.dump(self.loaded_values).encode()).decode()
+
+        return string
+
     def save(self, filename=None):
         filename = filename or self.filename
         if filename is None:
             raise ValueError("Filename not provided")
-        values = self.get_dictionary()
-
-        if self.section_name is None:
-            # Apply the new values to the loaded values
-            # and save them to the *exclusive* file (section_name is None)
-            self.loaded_values.update(values)
-            if not self.globally_encoded:
-                string = yaml.dump(self.loaded_values)
-            else:
-                string = base64.b64encode(yaml.dump(self.loaded_values).encode()).decode()
-
-            with open(filename, "w") as f:
-                f.write(string)
-        else:
-            # Section name is NOT None
-            data = {}
-            if os.path.exists(filename):
-                # We reload the file to get updated values
-                with open(filename, "r") as f:
-                    data = yaml.safe_load(f)
-
-            if not self.globally_encoded:
-                data[self.section_name] = values
-            else:
-                data[self.section_name] = base64.b64encode(yaml.dump(values).encode()).decode()
-
-            with open(filename, "w") as f:
-                yaml.dump(data, f)
+        string = self.save_to_string(filename)
+        with open(filename, "w") as f:
+            f.write(string)
 
     def edit(self, min_width=None, min_height=None, parent=None):
         dialog = EasyDialog(EasyTree(self.root_node, self.dependencies), parent=parent)
@@ -230,3 +217,36 @@ class EasyConfig2(QObject):
         if self.dependencies.get(dep.master, None) is None:
             self.dependencies[dep.master] = []
         self.dependencies[dep.master].append(dep)
+
+
+class MultiConfig:
+    def __init__(self):
+        self.configs = {}
+        self.foreign = {}
+
+    def add(self, name, config):
+        self.configs[name] = config
+
+    def load(self, filename):
+        with open(filename, "r") as f:
+            string = f.read()
+            sections = yaml.safe_load(string)
+
+            for k, config in sections.items():
+                string = yaml.dump(config)
+                if k in self.configs:
+                    self.configs[k].load_from_string(string)
+                else:
+                    self.foreign[k] = string
+
+    def save(self, filename):
+        with open(filename, "w") as f:
+            for name, config in self.configs.items():
+                string = config.save_to_string()
+                f.write(f"{name}:\n")
+                f.write(textwrap.indent(string, "  "))
+                f.write("\n")
+            for name, string in self.foreign.items():
+                f.write(f"{name}:\n")
+                f.write(textwrap.indent(string, "  "))
+                f.write("\n")

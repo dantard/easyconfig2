@@ -121,6 +121,12 @@ class EasyNode(QObject):
     def set_value(self, value):
         self.set(value)
 
+    def set_callback(self, callback, immediate=True, run_now=False):
+        self.callback = callback
+        self.immediate_update = True
+        if run_now and self.callback is not None:
+            self.callback(self.value)
+
 
 class EasyInputBox(EasyNode):
 

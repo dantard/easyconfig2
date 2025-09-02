@@ -35,7 +35,9 @@ class EasyTree(QTreeWidget):
         self.check_all_dependencies()
 
     def tree_expanded(self):
-        self.node.get_node("easyconfig/collapsed").set(self.get_collapsed_items())
+        collapsed = self.node.get_node("easyconfig/collapsed")
+        if collapsed is not None:
+            collapsed.set(self.get_collapsed_items())
 
     def update(self):
         state = self.get_collapsed_items()

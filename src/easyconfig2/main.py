@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
 from pygments.lexer import default
 from sympy import pretty
 
-from easyconfig2.easyconfig import EasyConfig2
+from easyconfig2.easyconfig import EasyConfig2, MultiConfig
 from easyconfig2.easydependency import EasyPairDependency, EasyMandatoryDependency
 
 app = QApplication(sys.argv)
@@ -19,7 +19,7 @@ class MainWindow(QWidget):
         self.v_layout = QVBoxLayout()
         self.setLayout(self.v_layout)
 
-        self.config = EasyConfig2(filename="config.yaml", name="main_config")
+        self.config = EasyConfig2(filename="config.yaml")
         ss1 = self.config.root().addSubSection("ss1", immediate=True)
         ss1_str_1 = ss1.addString("ss1_string_1", default="ss1_string_1", base64=True,
                                   callback=lambda x: print("changed ss1_string_1"))
@@ -35,12 +35,17 @@ class MainWindow(QWidget):
 
         self.config2 = EasyConfig2(filename="config.yaml", name="main_config2")
         ss1 = self.config2.root().addSubSection("ss1", immediate=True)
-        self.config2.save()
+        # self.config2.save()
         # self.config.add_dependency(EasyMandatoryDependency(ss1_str_1, lambda x: x > 10))
         # self.config.add_dependency(EasyPairDependency(ss1_str_1, ss2, lambda x: x > 10))
 
         # self.config.load()
         print("hello", self.config.ss1.ss3.ss3_string_1.get_value())
+
+        self.mc = MultiConfig()
+        self.mc.add("kakka", self.config)
+        self.mc.add("pipi", self.config2)
+        self.mc.load("kakka.yaml")
 
         # late_joiner_section = self.config.root().addSubSection("late_joiner")
         # late_joiner_section.addString("late_joiner_string", default="late_joiner_string")
@@ -60,7 +65,7 @@ class MainWindow(QWidget):
         # print(b.get_value())
         #
         btn = QPushButton("Save")
-        btn.clicked.connect(lambda: self.config.save())
+        btn.clicked.connect(lambda: self.mc.save("ooo.yaml"))
         # btn.clicked.connect(lambda: self.config.get_collapsed_recursive(a))
 
         btn_load = QPushButton("Load")
