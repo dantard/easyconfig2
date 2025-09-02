@@ -1,12 +1,12 @@
 import base64
 
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QIntValidator
+from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from sympy.printing.cxx import reserved
 
 from easyconfig2.easywidgets import EasyInputBoxWidget, EasyCheckBoxWidget, EasySliderWidget, EasyComboBoxWidget, \
     EasyFileDialogWidget, EasyListWidget, EasyFileListWidget, EasyEditBoxWidget, EasyPasswordEditWidget, \
-    EasySubsectionWidget
+    EasySubsectionWidget, EasyLabelWidget
 
 
 class EasyNode(QObject):
@@ -29,8 +29,9 @@ class EasyNode(QObject):
         self.hidden = kwargs.get("hidden", False)
         self.editable = kwargs.get("editable", True)
         self.pretty = kwargs.get("pretty", key)
-        self.immediate_update = kwargs.get("immediate", False)
         self.save_if_none = kwargs.get("save_if_none", True)
+        self.callback = kwargs.get("callback", None)
+        self.immediate_update = kwargs.get("immediate", self.callback is not None)
         self.father = None
 
         if not self.check_kwargs():
@@ -76,22 +77,28 @@ class EasyNode(QObject):
         self.value = value
         self.node_value_changed.emit(self)
         self.value_changed.emit(self)
+        if self.callback is not None:
+            self.callback(self.value)
 
     def use_inmediate_update(self):
         return self.immediate_update
 
+    def set_visible(self, visible):
+        pass
+
     def update_value(self, value):
-        # print("widget_changed_received", value)
         if self.value != value:
             # print("widget_changed_received: applying", value)
             self.value = value
             self.value_changed.emit(self)
+            if self.callback is not None:
+                self.callback(self.value)
 
     def get_key(self):
         return self.key
 
     def get_arguments(self):
-        return ["pretty", "save", "hidden", "immediate", "default", "enabled", "save_if_none", "base64"]
+        return ["pretty", "save", "hidden", "immediate", "default", "enabled", "save_if_none", "base64", "callback"]
 
     def check_kwargs(self):
 
@@ -133,12 +140,34 @@ class EasyEditBox(EasyNode):
         return super().get_arguments() + ["readonly", "max_height", "font"]
 
 
+class EasyLabel(EasyNode):
+
+    def get_widget(self):
+        return EasyLabelWidget(self.value, **self.kwargs)
+
+    def get_arguments(self):
+        return super().get_arguments() + ["max_height", "font"]
+
+
 class EasyInt(EasyInputBox):
 
     def __init__(self, key, **kwargs):
         if "validator" in kwargs:
             raise ValueError("Cannot set validator for EasyInt")
         kwargs["validator"] = QIntValidator(kwargs.get("min", -2147483648), kwargs.get("max", 2147483647))
+        super().__init__(key, **kwargs)
+
+    def get_arguments(self):
+        return super().get_arguments() + ["min", "max"]
+
+
+class EasyFloat(EasyInputBox):
+
+    def __init__(self, key, **kwargs):
+        if "validator" in kwargs:
+            raise ValueError("Cannot set validator for EasyFloat")
+        kwargs["validator"] = QDoubleValidator(kwargs.get("min", -1.7976931348623157e+308),
+                                               kwargs.get("max", 1.7976931348623157e+308), 4)
         super().__init__(key, **kwargs)
 
     def get_arguments(self):
@@ -387,6 +416,16 @@ class EasySubsection(EasyNode):
         self.add_child(node)
         return node
 
+    def addFloat(self, key, **kwargs):
+        node = EasyFloat(key, **kwargs)
+        self.add_child(node)
+        return node
+
+    def addLabel(self, key, **kwargs):
+        node = EasyLabel(key, **kwargs)
+        self.add_child(node)
+        return node
+
     def addFileList(self, key, **kwargs):
         node = EasyFileList(key, **kwargs)
         self.add_child(node)
@@ -413,6 +452,12 @@ class EasySubsection(EasyNode):
 
     def getInt(self, key, **kwargs):
         return self.get_child(key, EasyInt(key, **kwargs))
+
+    def getLabel(self, key, **kwargs):
+        return self.get_child(key, EasyLabel(key, **kwargs))
+
+    def getFloat(self, key, **kwargs):
+        return self.get_child(key, EasyFloat(key, **kwargs))
 
     def getCheckBox(self, key, **kwargs):
         return self.get_child(key, EasyCheckBox(key, **kwargs))

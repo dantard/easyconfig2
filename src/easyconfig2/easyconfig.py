@@ -83,7 +83,7 @@ class EasyConfig2(QObject):
         values = {}
         self.create_dictionary(self.root_node, values)
         return values
-  
+
     def load(self, filename=None, emit=False):
         filename = filename or self.filename
         if not os.path.exists(filename):
@@ -91,34 +91,37 @@ class EasyConfig2(QObject):
 
         with open(filename, "r") as f:
             string = f.read()
-            if self.section_name is None and not self.globally_encoded:
-                self.loaded_values = yaml.safe_load(string)
+            self.load_from_string(string, emit)
 
-            elif self.section_name is None and self.globally_encoded:
+    def load_from_string(self, string, emit=False):
+        if self.section_name is None and not self.globally_encoded:
+            self.loaded_values = yaml.safe_load(string)
+
+        elif self.section_name is None and self.globally_encoded:
+            string = base64.b64decode(string).decode()
+            self.loaded_values = yaml.safe_load(string)
+
+        elif not self.globally_encoded:
+
+            # The section name is NOT None
+            # and globally encoded is False
+            data = yaml.safe_load(string)
+            self.loaded_values = data.get(self.section_name, {})
+        else:
+
+            # Section name is NOT None and globally encoded is True
+            data = yaml.safe_load(string)
+            string = data.get(self.section_name, None)
+            if string is not None:
                 string = base64.b64decode(string).decode()
                 self.loaded_values = yaml.safe_load(string)
-
-            elif not self.globally_encoded:
-
-                # The section name is NOT None
-                # and globally encoded is False
-                data = yaml.safe_load(string)
-                self.loaded_values = data.get(self.section_name, {})
             else:
+                self.loaded_values = {}
 
-                # Section name is NOT None and globally encoded is True
-                data = yaml.safe_load(string)
-                string = data.get(self.section_name, None)
-                if string is not None:
-                    string = base64.b64decode(string).decode()
-                    self.loaded_values = yaml.safe_load(string)
-                else:
-                    self.loaded_values = {}
+        self.parse_dictionary_into_node(self.loaded_values, self.root_node, emit)
 
-            self.parse_dictionary_into_node(self.loaded_values, self.root_node, emit)
-
-            for key in self.hidden.get([]):
-                self.root_node.get_node(key).set_hidden(True)
+        for key in self.hidden.get([]):
+            self.root_node.get_node(key).set_hidden(True)
 
     def parse(self, dictionary):
         self.parse_dictionary_into_node(dictionary, self.root_node)
@@ -182,6 +185,18 @@ class EasyConfig2(QObject):
             self.edited.emit()
             return True
         return False
+
+    def get_widget(self, root_node=None, min_width=None, min_height=None, parent=None):
+        if root_node is None:
+            root_node = self.root_node
+        et = EasyTree(root_node, self.dependencies)
+
+        if min_width is not None:
+            et.setMinimumWidth(min_width)
+        if min_height is not None:
+            et.setMinimumHeight(min_height)
+
+        return et
 
     def parse_dictionary_into_node(self, dictionary, root_node, emit=False):
 

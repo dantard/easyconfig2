@@ -59,6 +59,7 @@ class EasyInputBoxWidget(EasyWidget):
         super().__init__(value, **kwargs)
         self.validated = True
         self.widget = QLineEdit()
+        self.widget.returnPressed.connect(self.value_changed)
         self.layout().addWidget(self.widget)
         self.validator = kwargs.get("validator", None)
         self.readonly = kwargs.get("readonly", False)
@@ -80,7 +81,7 @@ class EasyInputBoxWidget(EasyWidget):
             self.kind = str
         self.widget.setValidator(self.validator)
         self.widget.setReadOnly(self.readonly)
-        self.widget.textChanged.connect(self.value_changed)
+        # self.widget.textChanged.connect(self.value_changed)
 
         self.set_value(self.default)
 
@@ -106,6 +107,31 @@ class EasyInputBoxWidget(EasyWidget):
 
     def is_ok(self):
         return self.validated
+
+    def set_enabled(self, enabled):
+        self.widget.setEnabled(enabled)
+
+
+class EasyLabelWidget(EasyWidget):
+    def __init__(self, value, **kwargs):
+        super().__init__(value, **kwargs)
+        self.widget = QLabel()
+        self.layout().addWidget(self.widget)
+        self.max_height = kwargs.get("max_height", 100)
+        self.my_font = kwargs.get("font", None)
+        if self.my_font is not None:
+            self.widget.setFont(self.my_font)
+        self.set_value(self.default)
+
+    def get_value(self):
+        if self.widget.text() != "":
+            return self.widget.text()
+        return None
+
+    def set_value(self, value):
+        self.widget.blockSignals(True)
+        self.widget.setText(str(value) if value is not None else "")
+        self.widget.blockSignals(False)
 
     def set_enabled(self, enabled):
         self.widget.setEnabled(enabled)
@@ -343,7 +369,8 @@ class EasyBasicListWidget(EasyWidget):
         if self.editable:
             layout.addLayout(h_layout)
 
-        self.list_widget.addItems([str(i) for i in self.default])
+        if self.default is not None:
+            self.list_widget.addItems([str(i) for i in self.default])
         self.list_widget.setFont(QFont("Courier New", 10))
         self.list_widget.setMaximumHeight(self.widget_height)
 
@@ -395,8 +422,14 @@ class EasyListWidget(EasyBasicListWidget):
         if self.validator is not None:
             self.type = get_validator_type(self.validator)
         else:
-            types = set([type(e) for e in self.default])
-            if len(types) == 1:
+            if self.default is None:
+                types = set()
+            else:
+                types = set([type(e) for e in self.default])
+            print("Asssss", types)
+            if len(types) == 0:
+                pass
+            elif len(types) == 1:
                 self.type = types.pop()
                 self.validator = get_validator_from_type(self.type)
             else:
