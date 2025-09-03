@@ -32,6 +32,8 @@ class MainWindow(QWidget):
         ss2 = self.config.root().addSubSection("ss2")
         ss2.addString("ss2_string_1", default="ss2_string_1")  # , base64=True)
         self.aa = ss2.addString("ss2_string_2", default="ss2_string_2")
+        aaaa = ss2.addCheckbox("ss2_bool_1", default=True)
+        aaaa = ss2.addCombobox("ss2_combo_1", items=["kakka", "pipi", "kuku"], default=1)
 
         self.config2 = EasyConfig2(filename="config.yaml", name="main_config2")
         ss1 = self.config2.root().addSubSection("ss1", immediate=True)

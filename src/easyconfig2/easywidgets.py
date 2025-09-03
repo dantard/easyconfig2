@@ -30,6 +30,7 @@ class EasyWidget(QWidget):
         pass
 
     def value_changed(self):
+        print("dgdggdgdgdgd")
         self.widget_value_changed.emit(self)
 
     def set_enabled(self, enabled):
@@ -146,6 +147,7 @@ class EasyEditBoxWidget(EasyWidget):
         self.readonly = kwargs.get("readonly", False)
         self.max_height = kwargs.get("max_height", 100)
         self.my_font = kwargs.get("font", None)
+        self.setMaximumHeight(self.max_height)
         if self.my_font is not None:
             self.widget.setFont(self.my_font)
 
@@ -266,16 +268,26 @@ class EasyComboBoxWidget(EasyWidget):
         self.widget = self.MyComboBox()
         self.widget.addItems(kwargs.get("items", []))
         self.widget.setEnabled(self.enabled)
+        self.widget.setEditable(kwargs.get("editable", False))
+        self.mode_text = kwargs.get("mode_text", False)
         self.widget.setCurrentIndex(self.default if self.default is not None else 0)
         self.widget.currentIndexChanged.connect(self.value_changed)
         self.layout().addWidget(self.widget)
+        if self.widget.isEditable():
+            self.widget.lineEdit().returnPressed.connect(self.value_changed)
 
     def get_value(self):
-        return self.widget.currentIndex()
+        if self.mode_text:
+            return self.widget.currentText()
+        else:
+            return self.widget.currentIndex()
 
     def set_value(self, value):
         self.widget.blockSignals(True)
-        self.widget.setCurrentIndex(value if value is not None else 0)
+        if self.mode_text:
+            self.widget.setCurrentText(str(value) if value is not None else "")
+        else:
+            self.widget.setCurrentIndex(value if value is not None else 0)
         self.widget.blockSignals(False)
 
     def set_enabled(self, enabled):

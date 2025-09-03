@@ -167,3 +167,7 @@ class EasyTree(QTreeWidget):
                 else:
                     item1.setForeground(0, Qt.black)
         return conf_is_ok
+
+    def get_widget_from_node(self, node):
+        widget, _ = self.items.get(node)
+        return widget

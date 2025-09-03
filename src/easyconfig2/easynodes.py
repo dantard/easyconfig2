@@ -80,6 +80,10 @@ class EasyNode(QObject):
         if self.callback is not None:
             self.callback(self.value)
 
+    def set_silent(self, value):
+        self.value = value
+        self.node_value_changed.emit(self)
+
     def use_inmediate_update(self):
         return self.immediate_update
 
@@ -121,9 +125,9 @@ class EasyNode(QObject):
     def set_value(self, value):
         self.set(value)
 
-    def set_callback(self, callback, immediate=True, run_now=False):
+    def set_callback(self, callback, run_now=False, set_immediate=True):
         self.callback = callback
-        self.immediate_update = True
+        self.immediate_update = set_immediate
         if run_now and self.callback is not None:
             self.callback(self.value)
 
@@ -220,7 +224,7 @@ class EasyComboBox(EasyNode):
         return EasyComboBoxWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["items"]
+        return super().get_arguments() + ["items", "editable", "mode_text"]
 
 
 class EasyFileDialog(EasyNode):
@@ -245,7 +249,7 @@ class EasyList(EasyNode):
         super().__init__(key, **kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["validator", "height"]
+        return super().get_arguments() + ["validator", "height", "editable"]
 
     def get_widget(self):
         return EasyListWidget(self.value, **self.kwargs)
