@@ -60,7 +60,6 @@ class EasyInputBoxWidget(EasyWidget):
         super().__init__(value, **kwargs)
         self.validated = True
         self.widget = QLineEdit()
-        self.widget.returnPressed.connect(self.value_changed)
         self.layout().addWidget(self.widget)
         self.validator = kwargs.get("validator", None)
         self.readonly = kwargs.get("readonly", False)
@@ -82,9 +81,18 @@ class EasyInputBoxWidget(EasyWidget):
             self.kind = str
         self.widget.setValidator(self.validator)
         self.widget.setReadOnly(self.readonly)
-        # self.widget.textChanged.connect(self.value_changed)
+        self.widget.textChanged.connect(self.validate)
+        self.widget.returnPressed.connect(self.value_changed)
 
         self.set_value(self.default)
+
+    def validate(self):
+        if self.validator is not None:
+            state, _, _ = self.validator.validate(self.widget.text(), 0)
+            if state == QValidator.Acceptable:
+                self.widget.setStyleSheet("color: black")
+            else:
+                self.widget.setStyleSheet("color: red")
 
     def get_value(self):
         if self.widget.text() != "":
@@ -97,12 +105,12 @@ class EasyInputBoxWidget(EasyWidget):
         self.widget.blockSignals(False)
 
     def value_changed(self):
-        if self.validator is not None and self.validator.validate(self.widget.text(), 0)[0] != QValidator.Acceptable:
-            self.widget.setStyleSheet("color: red")
-            self.validated = False
-        else:
-            self.widget.setStyleSheet("color: black")
-            self.validated = True
+        # if self.validator is not None and self.validator.validate(self.widget.text(), 0)[0] != QValidator.Acceptable:
+        #     self.widget.setStyleSheet("color: red")
+        #     self.validated = False
+        # else:
+        #     self.widget.setStyleSheet("color: black")
+        #     self.validated = True
 
         super().value_changed()
 
@@ -273,8 +281,19 @@ class EasyComboBoxWidget(EasyWidget):
         self.widget.setCurrentIndex(self.default if self.default is not None else 0)
         self.widget.currentIndexChanged.connect(self.value_changed)
         self.layout().addWidget(self.widget)
+        self.validator = kwargs.get("validator", None)
         if self.widget.isEditable():
+            if self.validator is not None:
+                self.widget.lineEdit().setValidator(self.validator)
+                self.widget.lineEdit().textChanged.connect(self.validate)
             self.widget.lineEdit().returnPressed.connect(self.value_changed)
+
+    def validate(self):
+        state, _, _ = self.validator.validate(self.widget.lineEdit().text(), 0)
+        if state == QValidator.Acceptable:
+            self.widget.setStyleSheet("color: black")
+        else:
+            self.widget.setStyleSheet("color: red")
 
     def get_value(self):
         if self.mode_text:

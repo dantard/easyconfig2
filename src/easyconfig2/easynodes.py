@@ -224,7 +224,7 @@ class EasyComboBox(EasyNode):
         return EasyComboBoxWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["items", "editable", "mode_text"]
+        return super().get_arguments() + ["items", "editable", "mode_text", "validator"]
 
 
 class EasyFileDialog(EasyNode):
