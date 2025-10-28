@@ -18,6 +18,7 @@ class EasyConfig2(QObject):
         self.section_name = kwargs.pop("name", None)
         self.globally_encoded = kwargs.pop("encoded", False)
         self.filename = kwargs.pop("filename", None)
+
         self.easyconfig_private = {}
         self.tree = None
         self.dependencies = {}
@@ -26,6 +27,7 @@ class EasyConfig2(QObject):
         self.collapsed = self.private.add_child(EasyPrivateNode("collapsed", default=""))
         self.hidden = self.private.add_child(EasyPrivateNode("hidden", default=None, save_if_none=False))
         self.disabled = self.private.add_child(EasyPrivateNode("disabled", default=None, save_if_none=False))
+
         self.whole_file = None
         self.loaded_values = {}
 
@@ -141,7 +143,6 @@ class EasyConfig2(QObject):
     def save_to_string(self, filename=None):
 
         values = self.get_dictionary()
-
         self.loaded_values.update(values)
         if not self.globally_encoded:
             string = yaml.dump(self.loaded_values)
