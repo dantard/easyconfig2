@@ -30,7 +30,6 @@ class EasyWidget(QWidget):
         pass
 
     def value_changed(self):
-        print("dgdggdgdgdgd")
         self.widget_value_changed.emit(self)
 
     def set_enabled(self, enabled):
@@ -82,6 +81,8 @@ class EasyInputBoxWidget(EasyWidget):
         self.widget.setValidator(self.validator)
         self.widget.setReadOnly(self.readonly)
         self.widget.textChanged.connect(self.validate)
+
+        # ####### WARNING: this signal is emitted ONLY if the text is valid ######
         self.widget.returnPressed.connect(self.value_changed)
 
         self.set_value(self.default)
@@ -90,7 +91,7 @@ class EasyInputBoxWidget(EasyWidget):
         if self.validator is not None:
             state, _, _ = self.validator.validate(self.widget.text(), 0)
             if state == QValidator.Acceptable:
-                self.widget.setStyleSheet("color: black")
+                self.widget.setStyleSheet("color: gray")
             else:
                 self.widget.setStyleSheet("color: red")
 
@@ -105,13 +106,14 @@ class EasyInputBoxWidget(EasyWidget):
         self.widget.blockSignals(False)
 
     def value_changed(self):
+
         # if self.validator is not None and self.validator.validate(self.widget.text(), 0)[0] != QValidator.Acceptable:
         #     self.widget.setStyleSheet("color: red")
         #     self.validated = False
         # else:
         #     self.widget.setStyleSheet("color: black")
         #     self.validated = True
-
+        self.widget.setStyleSheet("color: black")
         super().value_changed()
 
     def is_ok(self):
@@ -208,10 +210,18 @@ class EasySliderWidget(EasyWidget):
         def wheelEvent(self, e):
             e.ignore()
 
+    class ClickableText(QLabel):
+        clicked = pyqtSignal()
+
+        def mouseDoubleClickEvent(self, a0):
+            super().mouseDoubleClickEvent(a0)
+            self.clicked.emit()
+
     def __init__(self, value, **kwargs):
         super().__init__(value, **kwargs)
         self.slider = self.MySlider()
-        self.text = QLabel()
+        self.text = self.ClickableText()
+        self.text.clicked.connect(self.set_manual_value)
         if kwargs.get("align", Qt.AlignLeft) == Qt.AlignRight:
             self.layout().addWidget(self.slider)
             self.layout().addWidget(self.text)
@@ -223,20 +233,21 @@ class EasySliderWidget(EasyWidget):
         self.slider.setEnabled(self.enabled)
         self.slider.setMinimum(kwargs.get("min", 0))
         self.slider.setMaximum(kwargs.get("max", 100))
+        self.jusify = kwargs.get("justify", "right")
 
-        self.format = kwargs.get("format", ".0f")
-        self.suffix = kwargs.get("suffix", "")
+        self.format = kwargs.get("format", "{:.3f}")
         self.den = kwargs.get("den", 1)
         self.show_value = kwargs.get("show_value", False)
 
         self.slider.setValue(int(self.default if self.default is not None else 0))
         self.slider.valueChanged.connect(self.value_changed)
-        self.text.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
         text = str(self.slider.maximum() / self.den)
-        max_value_formatted = format(float(text), self.format) + self.suffix
+        max_value_formatted = self.format.format(float(text))
 
         text = str(self.slider.minimum() / self.den)
-        min_value_formatted = format(float(text), self.format) + self.suffix
+        min_value_formatted = self.format.format(float(text))
 
         text_length = max(QFontMetrics(self.text.font()).boundingRect(max_value_formatted).width(),
                           QFontMetrics(self.text.font()).boundingRect(min_value_formatted).width())
@@ -245,6 +256,17 @@ class EasySliderWidget(EasyWidget):
         self.text.setMaximumWidth(text_length)
         self.text.setVisible(self.show_value)
         self.set_value(self.default)
+
+    def set_manual_value(self):
+        dialog = InputDialog(str(self.get_value()), validator=QDoubleValidator())
+        if dialog.exec_():
+            try:
+                val = float(dialog.input.text())
+                self.set_value(val)
+                self.value_changed()
+                self.update_text()
+            except:
+                pass
 
     def get_value(self):
         return self.slider.value() / self.den
@@ -260,10 +282,17 @@ class EasySliderWidget(EasyWidget):
         self.update_text()
 
     def update_text(self):
-        self.text.setText(format(self.slider.value() / self.den, self.format) + self.suffix)
+        self.text.setText(self.format.format(self.slider.value() / self.den))
+        # self.text.setText(format(self.slider.value() / self.den, self.format) + self.suffix)
 
     def set_enabled(self, enabled):
         self.slider.setEnabled(enabled)
+
+    def update(self, **kwargs):
+        self.slider.setMinimum(kwargs.get("min", self.slider.minimum()))
+        self.slider.setMaximum(kwargs.get("max", self.slider.maximum()))
+        self.format = kwargs.get("format", self.format)
+        self.den = kwargs.get("den", self.den)
 
 
 class EasyComboBoxWidget(EasyWidget):
@@ -291,7 +320,7 @@ class EasyComboBoxWidget(EasyWidget):
     def validate(self):
         state, _, _ = self.validator.validate(self.widget.lineEdit().text(), 0)
         if state == QValidator.Acceptable:
-            self.widget.setStyleSheet("color: black")
+            self.widget.setStyleSheet("color: gray")
         else:
             self.widget.setStyleSheet("color: red")
 
@@ -308,9 +337,14 @@ class EasyComboBoxWidget(EasyWidget):
         else:
             self.widget.setCurrentIndex(value if value is not None else 0)
         self.widget.blockSignals(False)
+        self.widget.setStyleSheet("color: black")
 
     def set_enabled(self, enabled):
         self.widget.setEnabled(enabled)
+
+    def value_changed(self):
+        super().value_changed()
+        self.widget.setStyleSheet("color: black")
 
 
 class EasyFileDialogWidget(EasyWidget):
@@ -457,7 +491,7 @@ class EasyListWidget(EasyBasicListWidget):
                 types = set()
             else:
                 types = set([type(e) for e in self.default])
-            print("Asssss", types)
+
             if len(types) == 0:
                 pass
             elif len(types) == 1:

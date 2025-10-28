@@ -31,7 +31,8 @@ class EasyNode(QObject):
         self.pretty = kwargs.get("pretty", key)
         self.save_if_none = kwargs.get("save_if_none", True)
         self.callback = kwargs.get("callback", None)
-        self.immediate_update = kwargs.get("immediate", self.callback is not None)
+        # self.immediate_update = kwargs.get("immediate", self.callback is not None)
+        self.immediate_update = kwargs.get("immediate", False)
         self.father = None
 
         if not self.check_kwargs():
@@ -48,6 +49,9 @@ class EasyNode(QObject):
         self.editable = kwargs.get("editable", self.editable)
         self.immediate_update = kwargs.get("immediate", self.immediate_update)
         self.save_if_none = kwargs.get("save_if_none", self.save_if_none)
+
+        # TODO: WARNING: ADDED 28/10/2025 may provoke some unexpected behavior
+        self.kwargs.update(kwargs)
 
     def get_pretty(self):
         return self.pretty
@@ -208,7 +212,7 @@ class EasySlider(EasyNode):
         return EasySliderWidget(self.value, **self.kwargs)
 
     def get_arguments(self):
-        return super().get_arguments() + ["min", "max", "den", "format", "show_value", "suffix", "align"]
+        return super().get_arguments() + ["min", "max", "den", "format", "show_value", "justify", "align"]
 
 
 class EasyComboBox(EasyNode):
@@ -292,7 +296,6 @@ class EasySubsection(EasyNode):
 
         child.update_kwargs(self.kwargs)
         child.set_father(self)
-
         if isinstance(child, EasySubsection):
             child.set_easyconfig(self.easyconfig)
         else:

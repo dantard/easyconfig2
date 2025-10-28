@@ -42,7 +42,6 @@ class MainWindow(QWidget):
         # self.config.add_dependency(EasyPairDependency(ss1_str_1, ss2, lambda x: x > 10))
 
         # self.config.load()
-        print("hello", self.config.ss1.ss3.ss3_string_1.get_value())
 
         self.mc = MultiConfig()
         self.mc.add("kakka", self.config)
