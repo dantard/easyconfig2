@@ -130,6 +130,7 @@ class EasyLabelWidget(EasyWidget):
         self.layout().addWidget(self.widget)
         self.max_height = kwargs.get("max_height", 100)
         self.my_font = kwargs.get("font", None)
+        self.format = kwargs.get("format", "{}")
         if self.my_font is not None:
             self.widget.setFont(self.my_font)
         self.set_value(self.default)
@@ -141,7 +142,7 @@ class EasyLabelWidget(EasyWidget):
 
     def set_value(self, value):
         self.widget.blockSignals(True)
-        self.widget.setText(str(value) if value is not None else "")
+        self.widget.setText(self.format.format(value) if value is not None else "")
         self.widget.blockSignals(False)
 
     def set_enabled(self, enabled):
@@ -242,20 +243,18 @@ class EasySliderWidget(EasyWidget):
         self.slider.setValue(int(self.default if self.default is not None else 0))
         self.slider.valueChanged.connect(self.value_changed)
         self.text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.update_width()
+        self.text.setVisible(self.show_value)
+        self.set_value(self.default)
 
-        text = str(self.slider.maximum() / self.den)
-        max_value_formatted = self.format.format(float(text))
-
-        text = str(self.slider.minimum() / self.den)
-        min_value_formatted = self.format.format(float(text))
-
+    def update_width(self):
+        max_value_formatted = self.format.format(self.slider.maximum() / self.den)
+        min_value_formatted = self.format.format(self.slider.minimum() / self.den)
         text_length = max(QFontMetrics(self.text.font()).boundingRect(max_value_formatted).width(),
                           QFontMetrics(self.text.font()).boundingRect(min_value_formatted).width())
         self.text.sizePolicy().setHorizontalPolicy(QSizePolicy.Minimum)
-        self.text.setMinimumWidth(text_length)
-        self.text.setMaximumWidth(text_length)
-        self.text.setVisible(self.show_value)
-        self.set_value(self.default)
+        self.text.setMinimumWidth(int(text_length))
+        self.text.setMaximumWidth(int(text_length))
 
     def set_manual_value(self):
         dialog = InputDialog(str(self.get_value()), validator=QDoubleValidator())
@@ -293,6 +292,7 @@ class EasySliderWidget(EasyWidget):
         self.slider.setMaximum(kwargs.get("max", self.slider.maximum()))
         self.format = kwargs.get("format", self.format)
         self.den = kwargs.get("den", self.den)
+        self.update_width()
 
 
 class EasyComboBoxWidget(EasyWidget):

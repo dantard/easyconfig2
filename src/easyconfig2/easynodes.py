@@ -34,9 +34,13 @@ class EasyNode(QObject):
         # self.immediate_update = kwargs.get("immediate", self.callback is not None)
         self.immediate_update = kwargs.get("immediate", False)
         self.father = None
+        self.widget = None
 
         if not self.check_kwargs():
             raise ValueError("Invalid keyword argument")
+
+    def get_widget(self):
+        return self.widget
 
     def set_father(self, father):
         self.father = father
@@ -91,7 +95,7 @@ class EasyNode(QObject):
     def use_inmediate_update(self):
         return self.immediate_update
 
-    def set_visible(self, visible):
+    def set_visible(self, tree, visible):
         pass
 
     def update_value(self, value):
@@ -119,7 +123,7 @@ class EasyNode(QObject):
         if self.item is not None:
             self.item.setHidden(not visible)
 
-    def get_widget(self):
+    def new_widget(self):
         return None
 
     # compatibility with the previous version
@@ -138,8 +142,9 @@ class EasyNode(QObject):
 
 class EasyInputBox(EasyNode):
 
-    def get_widget(self):
-        return EasyInputBoxWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyInputBoxWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return super().get_arguments() + ["validator", "readonly", "font"]
@@ -147,8 +152,9 @@ class EasyInputBox(EasyNode):
 
 class EasyEditBox(EasyNode):
 
-    def get_widget(self):
-        return EasyEditBoxWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyEditBoxWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return super().get_arguments() + ["readonly", "max_height", "font"]
@@ -156,11 +162,12 @@ class EasyEditBox(EasyNode):
 
 class EasyLabel(EasyNode):
 
-    def get_widget(self):
-        return EasyLabelWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyLabelWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
-        return super().get_arguments() + ["max_height", "font"]
+        return super().get_arguments() + ["max_height", "font", "format"]
 
 
 class EasyInt(EasyInputBox):
@@ -194,22 +201,25 @@ class EasyPasswordEdit(EasyInputBox):
         self.base64 = True
         super().__init__(key, **kwargs)
 
-    def get_widget(self):
-        return EasyPasswordEditWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyPasswordEditWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return super().get_arguments() + ["readonly"]
 
 
 class EasyCheckBox(EasyNode):
-    def get_widget(self):
-        return EasyCheckBoxWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyCheckBoxWidget(self.value, **self.kwargs)
+        return self.widget
 
 
 class EasySlider(EasyNode):
 
-    def get_widget(self):
-        return EasySliderWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasySliderWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return super().get_arguments() + ["min", "max", "den", "format", "show_value", "justify", "align"]
@@ -224,8 +234,9 @@ class EasyComboBox(EasyNode):
         items = self.kwargs.get("items", [])
         return items[index] if index < len(items) else None
 
-    def get_widget(self):
-        return EasyComboBoxWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyComboBoxWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return super().get_arguments() + ["items", "editable", "mode_text", "validator"]
@@ -233,8 +244,9 @@ class EasyComboBox(EasyNode):
 
 class EasyFileDialog(EasyNode):
 
-    def get_widget(self):
-        return EasyFileDialogWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyFileDialogWidget(self.value, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return super().get_arguments() + ["type", "extension"]
@@ -255,8 +267,9 @@ class EasyList(EasyNode):
     def get_arguments(self):
         return super().get_arguments() + ["validator", "height", "editable"]
 
-    def get_widget(self):
-        return EasyListWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyListWidget(self.value, **self.kwargs)
+        return self.widget
 
 
 class EasyFileList(EasyNode):
@@ -267,8 +280,9 @@ class EasyFileList(EasyNode):
     def get_arguments(self):
         return super().get_arguments() + ["type", "height"]
 
-    def get_widget(self):
-        return EasyFileListWidget(self.value, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasyFileListWidget(self.value, **self.kwargs)
+        return self.widget
 
 
 class EasySubsection(EasyNode):
@@ -341,8 +355,9 @@ class EasySubsection(EasyNode):
 
         return None
 
-    def get_widget(self):
-        return EasySubsectionWidget(None, **self.kwargs)
+    def new_widget(self):
+        self.widget = EasySubsectionWidget(None, **self.kwargs)
+        return self.widget
 
     def get_arguments(self):
         return ["pretty", "save", "hidden", "editable", "immediate", "save_if_none"]

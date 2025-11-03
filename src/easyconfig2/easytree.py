@@ -52,10 +52,14 @@ class EasyTree(QTreeWidget):
             if widget is not None:
                 node.update_value(widget.get_value())
 
+    def set_visible(self, node, value):
+        _, item = self.items[node]
+        item: QTreeWidgetItem
+        item.setHidden(not value)
+
     def hide_hidden(self, node):
         for child in node.get_children():
             if isinstance(child, EasySubsection):
-                # print(child.get_pretty(), child.is_hidden())
                 _, item = self.items[child]
                 item.setHidden(child.is_hidden())
                 self.hide_hidden(child)
@@ -84,7 +88,9 @@ class EasyTree(QTreeWidget):
 
         item = QTreeWidgetItem(parent_item)
         item.setText(0, node.get_pretty())
-        widget = node.get_widget()
+
+        widget = node.new_widget()
+
         if widget is not None:
             if parent_item is not None and self.itemWidget(parent_item, 1) is not None:
                 # Need to add the widget to the parent widget: it has to know

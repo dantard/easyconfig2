@@ -197,7 +197,6 @@ class EasyConfig2(QObject):
                     value = values.get(child.get_key(), child.value)
                     # Decode base64 if needed
                     if child.is_base64() and value is not None:
-                        print("value", value)
                         value = value.replace(" ", "")
                         value = yaml.safe_load(base64.b64decode(value))
 
