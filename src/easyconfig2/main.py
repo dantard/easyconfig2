@@ -3,8 +3,6 @@ from PyQt5.QtCore import Qt, QPointF, QSizeF, QTimer
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QPushButton
-from pygments.lexer import default
-from sympy import pretty
 
 from easyconfig2.easyconfig import EasyConfig2, MultiConfig
 from easyconfig2.easydependency import EasyPairDependency, EasyMandatoryDependency
