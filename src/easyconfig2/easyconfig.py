@@ -132,7 +132,7 @@ class EasyConfig2(QObject):
         if not isinstance(node, EasySubsection):
             raise ValueError("Node must be a subsection")
         if node not in self.root_node.get_children():
-            print(self.root_node.get_children())
+            # print(self.root_node.get_children())
             raise ValueError("Node is not a child of the root node")
 
         dictionary = self.loaded_values.get(node.get_key(), None)
