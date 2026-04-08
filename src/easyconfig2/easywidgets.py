@@ -232,8 +232,8 @@ class EasySliderWidget(EasyWidget):
 
         self.slider.setOrientation(1)
         self.slider.setEnabled(self.enabled)
-        self.slider.setMinimum(kwargs.get("min", 0))
-        self.slider.setMaximum(kwargs.get("max", 100))
+        self.slider.setMinimum(int(kwargs.get("min", 0)))
+        self.slider.setMaximum(int(kwargs.get("max", 100)))
         self.jusify = kwargs.get("justify", "right")
 
         self.format = kwargs.get("format", "{:.3f}")
