@@ -130,7 +130,7 @@ class EasyConfig2(QObject):
         if not isinstance(node, EasySubsection):
             raise ValueError("Node must be a subsection")
         if node not in self.root_node.get_children():
-            print(self.root_node.get_children())
+            #print(self.root_node.get_children())
             raise ValueError("Node is not a child of the root node")
 
         dictionary = self.loaded_values.get(node.get_key(), None)
@@ -209,7 +209,6 @@ class EasyConfig2(QObject):
                     value = values.get(child.get_key(), child.value)
                     # Decode base64 if needed
                     if child.is_base64() and value is not None:
-                        print("value", value)
                         value = value.replace(" ", "")
                         value = yaml.safe_load(base64.b64decode(value))
 

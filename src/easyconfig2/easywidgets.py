@@ -426,7 +426,7 @@ class EasyListWidget(EasyBasicListWidget):
                 types = set()
             else:
                 types = set([type(e) for e in self.default])
-            print("Asssss", types)
+
             if len(types) == 0:
                 pass
             elif len(types) == 1:
